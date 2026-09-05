@@ -4,6 +4,7 @@
 node_modules
 .pnp
 .pnp.js
+prompt.md
 
 # Local env files
 .env

@@ -1,132 +1,239 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { MasterDataLayout, ViewType } from "@/components/layout/MasterDataLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProductsPage() {
+  const [view, setView] = useState<ViewType>("list");
+  const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchProducts = () => {
-    setLoading(true);
-    fetch("/api/products").then(r => r.json()).then(data => { setProducts(data || []); setLoading(false); });
-  };
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const fetchData = async () => {
+    setLoading(true);
+    const res = await fetch("/api/products");
+    const data = await res.json();
+    setProducts(data || []);
+    setLoading(false);
+  };
+
+  const handleRowClick = (c: any) => {
+    setSelectedProduct(c);
+    setView("form");
+  };
+
+  const handleNew = () => {
+    setSelectedProduct(null);
+    setView("form");
+  };
+
+  const handleBack = () => {
+    setView("list");
+    fetchData();
+  };
+
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase())));
+
+  const renderList = () => (
+    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12"></TableHead>
+            <TableHead>Image</TableHead>
+            <TableHead>Product</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Sales Price</TableHead>
+            <TableHead>Cost</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
+          ) : filteredProducts.length === 0 ? (
+            <TableRow><TableCell colSpan={7} className="text-center py-8">No products found</TableCell></TableRow>
+          ) : (
+            filteredProducts.map(p => (
+              <TableRow key={p.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleRowClick(p)}>
+                <TableCell><input type="checkbox" onClick={(e) => e.stopPropagation()} /></TableCell>
+                <TableCell>
+                  <Avatar className="h-8 w-8 rounded-sm">
+                    <AvatarImage src={p.imageUrl || ""} />
+                    <AvatarFallback className="rounded-sm">{p.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </TableCell>
+                <TableCell className="font-medium text-uf-green">{p.name}</TableCell>
+                <TableCell>{p.category || "-"}</TableCell>
+                <TableCell><Badge variant="outline">{p.type}</Badge></TableCell>
+                <TableCell>₹{Number(p.salesPrice).toLocaleString()}</TableCell>
+                <TableCell>₹{Number(p.costPrice).toLocaleString()}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const renderKanban = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {filteredProducts.map(p => (
+        <div key={p.id} onClick={() => handleRowClick(p)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+          <div className="flex items-start space-x-4 mb-3">
+            <Avatar className="h-16 w-16 rounded-md flex-shrink-0">
+              <AvatarImage src={p.imageUrl || ""} />
+              <AvatarFallback className="rounded-md">{p.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="overflow-hidden">
+              <h3 className="font-bold text-uf-green truncate">{p.name}</h3>
+              <p className="text-xs text-gray-500 truncate mb-1">{p.category || "No category"}</p>
+              <Badge variant="secondary" className="text-xs">{p.type}</Badge>
+            </div>
+          </div>
+          <div className="flex justify-between items-center text-sm border-t pt-2 mt-2">
+            <div>
+              <div className="text-xs text-gray-500">Price</div>
+              <div className="font-medium">₹{Number(p.salesPrice).toLocaleString()}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500">Cost</div>
+              <div className="font-medium">₹{Number(p.costPrice).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderForm = () => <ProductForm product={selectedProduct} onSave={handleBack} />;
+
+  return (
+    <MasterDataLayout
+      title="Products"
+      subtitle="Manage your product catalog, prices, and categories."
+      view={view}
+      setView={setView}
+      onNew={handleNew}
+      onBack={handleBack}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      renderList={renderList}
+      renderKanban={renderKanban}
+      renderForm={renderForm}
+    />
+  );
+}
+
+function ProductForm({ product, onSave }: any) {
+  const [formData, setFormData] = useState<any>(product || {
+    name: "", category: "", salesPrice: "", costPrice: "", type: "GOODS", imageUrl: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isNew = !product;
+
+  const handleChange = (k: string, v: any) => setFormData((prev: any) => ({ ...prev, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const fd = new FormData(e.currentTarget);
     const payload = {
-      name: fd.get('name'),
-      type: fd.get('type'),
-      salesPrice: Number(fd.get('salesPrice')),
-      costPrice: Number(fd.get('costPrice')),
-      category: fd.get('category') || undefined
+      ...formData,
+      salesPrice: Number(formData.salesPrice),
+      costPrice: Number(formData.costPrice),
     };
-    
-    await fetch("/api/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+
+    try {
+      if (isNew) {
+        await fetch("/api/products", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await fetch(`/api/products/${product.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      }
+      onSave();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!product) return;
+    setIsSubmitting(true);
+    await fetch(`/api/products/${product.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isArchived: true })
     });
-    
     setIsSubmitting(false);
-    setIsOpen(false);
-    fetchProducts();
+    onSave();
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-uf-muted">Manage your inventory, goods, and services.</p>
+    <div className="bg-white rounded-md shadow-sm border p-6">
+      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+        <h2 className="text-xl font-bold">{isNew ? "New Product" : formData.name}</h2>
+        <div className="space-x-2">
+          {!isNew && <Button variant="destructive" onClick={handleArchive}>Archive</Button>}
         </div>
-        
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-uf-green hover:bg-uf-green/90 text-white">
-              <Plus className="mr-2 h-4 w-4" /> Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Product</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Product Name</Label>
-                <Input id="name" name="name" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="type">Product Type</Label>
-                <Select name="type" defaultValue="GOODS">
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="GOODS">Goods</SelectItem>
-                    <SelectItem value="SERVICE">Service</SelectItem>
-                    <SelectItem value="COMBO">Combo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="salesPrice">Sales Price ($)</Label>
-                  <Input id="salesPrice" name="salesPrice" type="number" step="0.01" min="0" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="costPrice">Cost Price ($)</Label>
-                  <Input id="costPrice" name="costPrice" type="number" step="0.01" min="0" required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Category (Optional)</Label>
-                <Input id="category" name="category" />
-              </div>
-              <Button type="submit" className="w-full bg-uf-green hover:bg-uf-green/90 text-white" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Save Product"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      <div className="rounded-md border border-uf-border bg-uf-surface">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Sales Price</TableHead>
-              <TableHead className="text-right">Cost Price</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? <TableRow><TableCell colSpan={4} className="text-center py-8">Loading...</TableCell></TableRow> : 
-             products.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center py-8">No products found</TableCell></TableRow> :
-             products.map(p => (
-              <TableRow key={p.id} className="ledger-row cursor-pointer hover:bg-uf-bg">
-                <TableCell className="font-medium text-uf-ink">{p.name}</TableCell>
-                <TableCell><Badge variant="outline" className="bg-gray-50">{p.type}</Badge></TableCell>
-                <TableCell className="text-right tabular">${Number(p.salesPrice).toFixed(2)}</TableCell>
-                <TableCell className="text-right tabular">${Number(p.costPrice).toFixed(2)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Product Name</Label>
+            <Input required value={formData.name || ""} onChange={e => handleChange("name", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Input placeholder="Type to create or select category..." value={formData.category || ""} onChange={e => handleChange("category", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Product Type</Label>
+            <Select value={formData.type} onValueChange={v => handleChange("type", v)}>
+              <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GOODS">Goods</SelectItem>
+                <SelectItem value="SERVICE">Service</SelectItem>
+                <SelectItem value="COMBO">Combo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Image URL</Label>
+            <Input placeholder="https://..." value={formData.imageUrl || ""} onChange={e => handleChange("imageUrl", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Sales Price (₹)</Label>
+            <Input type="number" required value={formData.salesPrice || ""} onChange={e => handleChange("salesPrice", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Cost Price (₹)</Label>
+            <Input type="number" required value={formData.costPrice || ""} onChange={e => handleChange("costPrice", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end">
+          <Button type="submit" disabled={isSubmitting} >
+            {isNew ? "Create Product" : "Save Changes"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

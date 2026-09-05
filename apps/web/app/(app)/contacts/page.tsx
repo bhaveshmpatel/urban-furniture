@@ -1,93 +1,237 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { MasterDataLayout, ViewType } from "@/components/layout/MasterDataLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ContactsPage() {
+  const [view, setView] = useState<ViewType>("list");
+  const [searchQuery, setSearchQuery] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
 
-  const fetchContacts = () => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
     setLoading(true);
-    fetch("/api/contacts").then(r => r.json()).then(data => { setContacts(data || []); setLoading(false); });
+    const res = await fetch("/api/contacts");
+    const data = await res.json();
+    setContacts(data || []);
+    setLoading(false);
   };
 
-  useEffect(() => { fetchContacts(); }, []);
+  const handleRowClick = (c: any) => {
+    setSelectedContact(c);
+    setView("form");
+  };
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleNew = () => {
+    setSelectedContact(null);
+    setView("form");
+  };
+
+  const handleBack = () => {
+    setView("list");
+    fetchData();
+  };
+
+  const filteredContacts = contacts.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const renderList = () => (
+    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12"></TableHead>
+            <TableHead>Image</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Phone</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
+          ) : filteredContacts.length === 0 ? (
+            <TableRow><TableCell colSpan={5} className="text-center py-8">No contacts found</TableCell></TableRow>
+          ) : (
+            filteredContacts.map(c => (
+              <TableRow key={c.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleRowClick(c)}>
+                <TableCell><input type="checkbox" onClick={(e) => e.stopPropagation()} /></TableCell>
+                <TableCell>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={c.imageUrl || ""} />
+                    <AvatarFallback>{c.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </TableCell>
+                <TableCell className="font-medium text-uf-green">{c.name}</TableCell>
+                <TableCell>{c.email || "-"}</TableCell>
+                <TableCell>{c.mobile || "-"}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const renderKanban = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {filteredContacts.map(c => (
+        <div key={c.id} onClick={() => handleRowClick(c)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow flex items-center space-x-4">
+          <Avatar className="h-12 w-12 flex-shrink-0">
+            <AvatarImage src={c.imageUrl || ""} />
+            <AvatarFallback>{c.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="overflow-hidden">
+            <h3 className="font-bold text-uf-green truncate">{c.name}</h3>
+            <p className="text-sm text-gray-500 truncate">{c.email || "No email"}</p>
+            <p className="text-sm text-gray-500 truncate">{c.mobile || "No phone"}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderForm = () => <ContactForm contact={selectedContact} onSave={handleBack} />;
+
+  return (
+    <MasterDataLayout
+      title="Contacts"
+      subtitle="Manage your customers and vendors."
+      view={view}
+      setView={setView}
+      onNew={handleNew}
+      onBack={handleBack}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      renderList={renderList}
+      renderKanban={renderKanban}
+      renderForm={renderForm}
+    />
+  );
+}
+
+function ContactForm({ contact, onSave }: any) {
+  const [formData, setFormData] = useState<any>(contact || {
+    name: "", email: "", mobile: "", type: "CUSTOMER", street: "", city: "", state: "", zip: "", country: "", imageUrl: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isNew = !contact;
+
+  const handleChange = (k: string, v: any) => setFormData((prev: any) => ({ ...prev, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const fd = new FormData(e.currentTarget);
-    await fetch("/api/contacts", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        name: fd.get('name'), type: fd.get('type'), 
-        email: fd.get('email') || undefined, mobile: fd.get('mobile') || undefined 
-      })
+    try {
+      if (isNew) {
+        await fetch("/api/contacts", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+      } else {
+        await fetch(`/api/contacts/${contact.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+      }
+      onSave();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!contact) return;
+    setIsSubmitting(true);
+    await fetch(`/api/contacts/${contact.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isArchived: true })
     });
-    setIsSubmitting(false); setIsOpen(false); fetchContacts();
+    setIsSubmitting(false);
+    onSave();
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Contacts</h1>
-          <p className="text-uf-muted">Manage your customers and vendors.</p>
+    <div className="bg-white rounded-md shadow-sm border p-6">
+      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+        <h2 className="text-xl font-bold">{isNew ? "New Contact" : formData.name}</h2>
+        <div className="space-x-2">
+          {!isNew && <Button variant="destructive" onClick={handleArchive}>Archive</Button>}
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild><Button className="bg-uf-green hover:bg-uf-green/90 text-white"><Plus className="mr-2 h-4 w-4" /> Add Contact</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create New Contact</DialogTitle></DialogHeader>
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" name="name" required /></div>
-              <div className="space-y-2">
-                <Label htmlFor="type">Contact Type</Label>
-                <Select name="type" defaultValue="CUSTOMER">
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CUSTOMER">Customer</SelectItem>
-                    <SelectItem value="VENDOR">Vendor</SelectItem>
-                    <SelectItem value="BOTH">Both</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" /></div>
-                <div className="space-y-2"><Label htmlFor="mobile">Phone</Label><Input id="mobile" name="mobile" /></div>
-              </div>
-              <Button type="submit" className="w-full bg-uf-green text-white" disabled={isSubmitting}>Save Contact</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
-      <div className="rounded-md border border-uf-border bg-uf-surface">
-        <Table>
-          <TableHeader>
-            <TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead></TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? <TableRow><TableCell colSpan={4} className="text-center py-8">Loading...</TableCell></TableRow> : 
-             contacts.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center py-8">No contacts found</TableCell></TableRow> :
-             contacts.map(c => (
-              <TableRow key={c.id}>
-                <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell><Badge variant="outline">{c.type}</Badge></TableCell>
-                <TableCell>{c.email || '-'}</TableCell>
-                <TableCell>{c.mobile || '-'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Contact Name</Label>
+            <Input required value={formData.name || ""} onChange={e => handleChange("name", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Type</Label>
+            <Select value={formData.type} onValueChange={v => handleChange("type", v)}>
+              <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CUSTOMER">Customer</SelectItem>
+                <SelectItem value="VENDOR">Vendor</SelectItem>
+                <SelectItem value="BOTH">Both</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input type="email" value={formData.email || ""} onChange={e => handleChange("email", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone</Label>
+            <Input value={formData.mobile || ""} onChange={e => handleChange("mobile", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Image URL</Label>
+            <Input placeholder="https://..." value={formData.imageUrl || ""} onChange={e => handleChange("imageUrl", e.target.value)} />
+          </div>
+        </div>
+
+        <h3 className="font-bold text-lg mt-8 mb-4 border-b pb-2">Address</h3>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2 col-span-2">
+            <Label>Street</Label>
+            <Input value={formData.street || ""} onChange={e => handleChange("street", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>City</Label>
+            <Input value={formData.city || ""} onChange={e => handleChange("city", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>State</Label>
+            <Input value={formData.state || ""} onChange={e => handleChange("state", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Pincode (Zip)</Label>
+            <Input value={formData.zip || ""} onChange={e => handleChange("zip", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Country</Label>
+            <Input value={formData.country || ""} onChange={e => handleChange("country", e.target.value)} />
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end">
+          <Button type="submit" disabled={isSubmitting} >
+            {isNew ? "Create Contact" : "Save Changes"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

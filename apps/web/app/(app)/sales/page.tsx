@@ -20,7 +20,7 @@ export default function SalesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Sales</h1>
           <p className="text-uf-muted">Manage your sales orders and customer invoices.</p>
         </div>
-        <Button className="bg-uf-green hover:bg-uf-green/90 text-white"><Plus className="mr-2 h-4 w-4" /> Create Sales Order</Button>
+        <Button ><Plus className="mr-2 h-4 w-4" /> Create Sales Order</Button>
       </div>
       <div className="rounded-md border border-uf-border bg-uf-surface">
         <Table>

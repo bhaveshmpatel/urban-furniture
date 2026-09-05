@@ -1,95 +1,193 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { MasterDataLayout, ViewType } from "@/components/layout/MasterDataLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function JournalsPage() {
+  const [view, setView] = useState<ViewType>("list");
+  const [searchQuery, setSearchQuery] = useState("");
   const [journals, setJournals] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedJournal, setSelectedJournal] = useState<any>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
-    const [jRes, aRes] = await Promise.all([fetch("/api/journals"), fetch("/api/accounts")]);
-    setJournals(await jRes.json()); setAccounts(await aRes.json());
+    const res = await fetch("/api/journals");
+    const data = await res.json();
+    setJournals(data || []);
+    
+    const resA = await fetch("/api/accounts");
+    const dataA = await resA.json();
+    setAccounts(dataA || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const handleRowClick = (c: any) => {
+    setSelectedJournal(c);
+    setView("form");
+  };
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleNew = () => {
+    setSelectedJournal(null);
+    setView("form");
+  };
+
+  const handleBack = () => {
+    setView("list");
+    fetchData();
+  };
+
+  const filteredJournals = journals.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const renderList = () => (
+    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Journal Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Default Account</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow><TableCell colSpan={3} className="text-center py-8">Loading...</TableCell></TableRow>
+          ) : filteredJournals.length === 0 ? (
+            <TableRow><TableCell colSpan={3} className="text-center py-8">No journals found</TableCell></TableRow>
+          ) : (
+            filteredJournals.map(j => (
+              <TableRow key={j.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleRowClick(j)}>
+                <TableCell className="font-medium text-uf-green">{j.name}</TableCell>
+                <TableCell><Badge variant="outline">{j.type}</Badge></TableCell>
+                <TableCell>{j.defaultDebitAccount?.name || "-"}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  const renderKanban = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {filteredJournals.map(j => (
+        <div key={j.id} onClick={() => handleRowClick(j)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-uf-green">{j.name}</h3>
+            <Badge variant="outline">{j.type}</Badge>
+          </div>
+          <div className="text-sm text-gray-500 mt-2">
+            Default A/c: {j.defaultDebitAccount?.name || "None"}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderForm = () => <JournalForm journal={selectedJournal} accounts={accounts} onSave={handleBack} />;
+
+  return (
+    <MasterDataLayout
+      title="Journals"
+      subtitle="Manage your accounting journals."
+      view={view}
+      setView={setView}
+      onNew={handleNew}
+      onBack={handleBack}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      renderList={renderList}
+      renderKanban={renderKanban}
+      renderForm={renderForm}
+    />
+  );
+}
+
+function JournalForm({ journal, accounts, onSave }: any) {
+  const [formData, setFormData] = useState<any>(journal || {
+    name: "", type: "SALES", defaultDebitAccountId: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isNew = !journal;
+
+  const handleChange = (k: string, v: any) => setFormData((prev: any) => ({ ...prev, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const fd = new FormData(e.currentTarget);
-    await fetch("/api/journals", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: fd.get('name'), type: fd.get('type'), defaultDebitAccountId: fd.get('defaultAccountId') })
-    });
-    setIsSubmitting(false); setIsOpen(false); fetchData();
+    try {
+      if (isNew) {
+        await fetch("/api/journals", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+      } else {
+        await fetch(`/api/journals/${journal.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+      }
+      onSave();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Journals</h1>
-          <p className="text-uf-muted">Manage your accounting journals.</p>
+    <div className="bg-white rounded-md shadow-sm border p-6 max-w-2xl">
+      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+        <h2 className="text-xl font-bold">{isNew ? "New Journal" : formData.name}</h2>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label>Journal Name</Label>
+          <Input required value={formData.name || ""} onChange={e => handleChange("name", e.target.value)} />
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild><Button className="bg-uf-green hover:bg-uf-green/90 text-white"><Plus className="mr-2 h-4 w-4" /> Add Journal</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create New Journal</DialogTitle></DialogHeader>
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="name">Journal Name</Label><Input id="name" name="name" required /></div>
-              <div className="space-y-2">
-                <Label htmlFor="type">Journal Type</Label>
-                <Select name="type" defaultValue="GENERAL">
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SALES">Sales</SelectItem><SelectItem value="PURCHASE">Purchase</SelectItem>
-                    <SelectItem value="BANK">Bank</SelectItem><SelectItem value="CASH">Cash</SelectItem>
-                    <SelectItem value="GENERAL">General</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="defaultAccountId">Default Account</Label>
-                <Select name="defaultAccountId" required>
-                  <SelectTrigger><SelectValue placeholder="Select an account" /></SelectTrigger>
-                  <SelectContent>
-                    {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.type})</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full bg-uf-green text-white" disabled={isSubmitting}>Save</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <div className="rounded-md border border-uf-border bg-uf-surface">
-        <Table>
-          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Default Account ID</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {loading ? <TableRow><TableCell colSpan={3} className="text-center py-8">Loading...</TableCell></TableRow> : 
-             journals.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-8">No journals found</TableCell></TableRow> :
-             journals.map(j => (
-              <TableRow key={j.id} className="ledger-row hover:bg-uf-bg">
-                <TableCell className="font-medium">{j.name}</TableCell>
-                <TableCell><Badge variant="outline">{j.type}</Badge></TableCell>
-                <TableCell className="font-mono text-xs">{j.defaultAccountId}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label>Journal Type</Label>
+            <Select value={formData.type} onValueChange={v => handleChange("type", v)}>
+              <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SALES">Sales</SelectItem>
+                <SelectItem value="PURCHASE">Purchase</SelectItem>
+                <SelectItem value="BANK">Bank</SelectItem>
+                <SelectItem value="CASH">Cash</SelectItem>
+                <SelectItem value="GENERAL">General</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Default Account</Label>
+            <Select value={formData.defaultDebitAccountId} onValueChange={v => handleChange("defaultDebitAccountId", v)}>
+              <SelectTrigger><SelectValue placeholder="Select Account" /></SelectTrigger>
+              <SelectContent>
+                {accounts.map((a: any) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end">
+          <Button type="submit" disabled={isSubmitting} >
+            {isNew ? "Create Journal" : "Save Changes"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
