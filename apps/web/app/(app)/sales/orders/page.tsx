@@ -35,7 +35,8 @@ export default function SalesOrdersPage() {
 
   const fetchDependencies = async () => {
     const resV = await fetch("/api/contacts");
-    setCustomers((await resV.json()).filter((v: any) => v.type === "CUSTOMER" || v.type === "BOTH"));
+    const contactsData = await resV.json();
+    setCustomers(contactsData.filter((v: any) => v.type === "CUSTOMER" || v.type === "BOTH"));
     const resP = await fetch("/api/products");
     setProducts(await resP.json());
     const resA = await fetch("/api/analytic-accounts");

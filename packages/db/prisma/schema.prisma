@@ -76,6 +76,7 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  auditLogs    AuditLog[]
 
 }
 
@@ -142,6 +143,7 @@ model Journal {
   defaultCreditAccountId String?
   defaultDebitAccount    Account?    @relation("DefaultDebitAccount", fields: [defaultDebitAccountId], references: [id])
   defaultCreditAccount   Account?    @relation("DefaultCreditAccount", fields: [defaultCreditAccountId], references: [id])
+  isArchived             Boolean     @default(false)
   createdAt              DateTime    @default(now())
 
   journalEntries JournalEntry[]
@@ -185,6 +187,7 @@ model AnalyticAccount {
   id        String       @id @default(cuid())
   name      String
   type      AnalyticType
+  isArchived Boolean     @default(false)
   createdAt DateTime     @default(now())
 
   journalItems        JournalItem[]
@@ -349,4 +352,16 @@ model Payment {
 
   @@index([vendorBillId])
   @@index([customerInvoiceId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entity     String
+  entityId   String
+  action     String   // CREATE, UPDATE, ARCHIVE, RESET_TO_DRAFT
+  userId     String?  // the user who performed the action
+  user       User?    @relation(fields: [userId], references: [id])
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
 }

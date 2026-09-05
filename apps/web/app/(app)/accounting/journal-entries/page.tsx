@@ -158,10 +158,17 @@ export default function JournalEntriesPage() {
 
 function JournalEntryForm({ entry, journals, accounts, contacts, analytics, onSave }: any) {
   const [formData, setFormData] = useState<any>(entry || {
-    journalId: journals[0]?.id || "", date: new Date().toISOString().split('T')[0], reference: "", items: []
+    journalId: "", date: new Date().toISOString().split('T')[0], reference: "", items: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postError, setPostError] = useState("");
+
+  // Auto-select first journal once the list loads (on new entry form)
+  useEffect(() => {
+    if (!entry && !formData.journalId && journals.length > 0) {
+      setFormData((prev: any) => ({ ...prev, journalId: journals[0].id }));
+    }
+  }, [journals]);
 
   const isNew = !entry;
   const status = entry?.status || "DRAFT";
@@ -194,18 +201,29 @@ function JournalEntryForm({ entry, journals, accounts, contacts, analytics, onSa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPostError("");
     setIsSubmitting(true);
     try {
       if (isNew) {
-        await fetch("/api/journal-entries", {
+        const res = await fetch("/api/journal-entries", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData)
         });
+        if (!res.ok) {
+          const err = await res.json();
+          setPostError(err.error || "Failed to save journal entry.");
+          return;
+        }
       } else {
-        await fetch(`/api/journal-entries/${entry.id}`, {
+        const res = await fetch(`/api/journal-entries/${entry.id}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData)
         });
+        if (!res.ok) {
+          const err = await res.json();
+          setPostError(err.error || "Failed to save journal entry.");
+          return;
+        }
       }
       onSave();
     } finally {

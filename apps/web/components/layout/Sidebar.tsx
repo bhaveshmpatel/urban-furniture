@@ -2,29 +2,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, ShoppingCart, Receipt, CreditCard, BookOpen, PieChart, Building2, ChevronDown } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Receipt, CreditCard, BookOpen, PieChart, Building2, ChevronDown, LogOut } from "lucide-react";
 import { useState } from "react";
 
 const NAV = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  {
-    label: "Sales", icon: ShoppingCart,
-    children: [
-      { label: "Sales Orders", href: "/sales/orders" },
-      { label: "Customer Invoices", href: "/sales/invoices" },
-    ],
-  },
-  {
-    label: "Purchase", icon: Receipt,
-    children: [
-      { label: "Purchase Orders", href: "/purchase/orders" },
-      { label: "Vendor Bills", href: "/purchase/bills" },
-    ],
-  },
+  { label: "Sales Orders", icon: ShoppingCart, href: "/sales/orders" },
+  { label: "Purchase Orders", icon: Receipt, href: "/purchase/orders" },
   { label: "Payments", icon: CreditCard, href: "/payments" },
   {
     label: "Accounting", icon: BookOpen,
     children: [
+      { label: "Customer Invoices", href: "/sales/invoices" },
+      { label: "Vendor Bills", href: "/purchase/bills" },
       { label: "Chart of Accounts", href: "/accounting/chart-of-accounts" },
       { label: "Journals", href: "/accounting/journals" },
       { label: "Journal Entries", href: "/accounting/journal-entries" },
@@ -45,15 +35,31 @@ const NAV = [
     children: [
       { label: "Contacts", href: "/contacts" },
       { label: "Products", href: "/products" },
+      { label: "Users", href: "/users" },
     ],
   },
 ];
 
+import { useSession, signOut } from "next-auth/react";
+
 export function Sidebar() {
+  const { data: session } = useSession();
   const pathname = usePathname() || "";
   const [expanded, setExpanded] = useState<string | null>("Master Data");
 
   const toggle = (label: string) => setExpanded(p => p === label ? null : label);
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
+  };
+
+  const role = (session?.user as any)?.role;
+  const isUser = role === "CONTACT";
+
+  // Filter NAV items based on role
+  const displayNav = isUser 
+    ? [{ label: "My Documents", icon: Receipt, href: "/portal" }] 
+    : NAV;
 
   return (
     <aside className="w-64 flex-shrink-0 bg-uf-surface border-r border-uf-border h-screen overflow-y-auto flex flex-col">
@@ -61,7 +67,7 @@ export function Sidebar() {
         <span className="font-serif font-bold text-uf-green text-xl tracking-tight">Urban Furniture</span>
       </div>
       <nav className="flex-1 py-4 px-3 space-y-1">
-        {NAV.map((item) => {
+        {displayNav.map((item) => {
           if (!item.children) {
             const active = pathname === item.href;
             return (
@@ -96,6 +102,19 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="p-4 border-t border-uf-border">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-uf-green rounded-full flex items-center justify-center text-white font-medium shrink-0">U</div>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-uf-ink">{session?.user?.name || "User Profile"}</span>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="text-uf-muted hover:text-red-500 transition-colors" title="Sign out">
+            <LogOut size={18} />
+          </button>
+        </div>
+      </div>
     </aside>
   );
 }

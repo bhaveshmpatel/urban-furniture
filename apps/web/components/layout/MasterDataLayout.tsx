@@ -17,10 +17,11 @@ interface MasterDataLayoutProps {
   renderList: () => React.ReactNode;
   renderKanban: () => React.ReactNode;
   renderForm: () => React.ReactNode;
+  hideNewButton?: boolean;
 }
 
 export function MasterDataLayout({
-  title, subtitle, view, setView, onNew, onBack, searchQuery, setSearchQuery, renderList, renderKanban, renderForm
+  title, subtitle, view, setView, onNew, onBack, searchQuery, setSearchQuery, renderList, renderKanban, renderForm, hideNewButton
 }: MasterDataLayoutProps) {
   return (
     <div className="space-y-6">
@@ -53,9 +54,11 @@ export function MasterDataLayout({
                 <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
-            <Button onClick={onNew}>
-              <Plus className="mr-2 h-4 w-4" /> New
-            </Button>
+            {!hideNewButton && (
+              <Button onClick={onNew}>
+                <Plus className="mr-2 h-4 w-4" /> New
+              </Button>
+            )}
           </div>
         </div>
       )}

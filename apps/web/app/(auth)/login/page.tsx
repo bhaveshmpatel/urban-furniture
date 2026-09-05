@@ -1,13 +1,25 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { status, data: session } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role === "CONTACT") {
+        router.push("/portal");
+      } else {
+        router.push("/dashboard");
+      }
+    }
+  }, [status, router, session]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -19,8 +31,12 @@ export default function LoginPage() {
       redirect: false,
     });
     setIsLoading(false);
-    if (result?.error) setError("Invalid Login Id or Password");
-    else { router.push("/dashboard"); router.refresh(); }
+    if (result?.error) {
+      setError("Invalid Login Id or Password");
+    } else {
+      router.push("/");
+      router.refresh();
+    }
   };
 
   return (

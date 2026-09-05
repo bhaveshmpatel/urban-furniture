@@ -33,3 +33,5 @@ export {
   type DashboardStatusCounts,
   type DashboardResult,
 } from './reports';
+
+export { logAudit } from './audit';

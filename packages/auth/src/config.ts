@@ -1,33 +1,35 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
-import { loginSchema } from "@urban-furniture/validators";
+import bcrypt from "bcryptjs";
+import { prisma } from "@repo/db";
 
 export const authConfig: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        loginId: { label: "Login ID", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) {
-          return null;
-        }
-        const { email, password } = parsed.data;
+        if (!credentials?.loginId || !credentials?.password) return null;
         
-        // Mock user for now
-        const user = { id: "1", name: "Admin", email: "admin@example.com", passwordHash: "$2b$10$somehash", role: "ADMIN" };
+        const user = await prisma.user.findFirst({
+          where: { loginId: credentials.loginId, isActive: true }
+        });
         
-        if (email === user.email) {
-          // const match = await bcrypt.compare(password, user.passwordHash);
-          // if (match) return user;
-          return user;
-        }
+        if (!user) return null;
         
-        return null;
+        const match = await bcrypt.compare(credentials.password, user.passwordHash);
+        if (!match) return null;
+        
+        return {
+          id: user.id,
+          name: user.loginId,
+          email: user.email,
+          role: user.role,
+          contactId: user.contactId
+        } as any;
       }
     })
   ],
@@ -36,6 +38,7 @@ export const authConfig: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.contactId = (user as any).contactId;
       }
       return token;
     },
@@ -43,11 +46,11 @@ export const authConfig: NextAuthOptions = {
       if (token && session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        (session.user as any).contactId = token.contactId;
       }
       return session;
     }
   },
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
+  pages: { signIn: "/login" }
 };

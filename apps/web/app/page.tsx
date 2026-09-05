@@ -1,7 +1,21 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Calculator, LineChart, ShieldCheck } from "lucide-react";
+import { getServerSession } from "next-auth/next";
+import { authConfig } from "@repo/auth";
+import { redirect } from "next/navigation";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getServerSession(authConfig);
+
+  if (session?.user) {
+    const role = (session.user as any).role;
+    if (role === "CONTACT") {
+      redirect("/portal");
+    } else {
+      redirect("/dashboard");
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-uf-bg text-uf-ink font-sans">
       <header className="flex items-center justify-between px-6 py-4 border-b border-uf-border bg-uf-surface">
