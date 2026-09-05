@@ -12,9 +12,10 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",
-    "next-auth": "^4.24.11",
+    "@prisma/client": "8.1.0-dev.6",
     "bcryptjs": "^3.0.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "next-auth": "^4.24.11"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",

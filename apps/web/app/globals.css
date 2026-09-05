@@ -1,81 +1,93 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    /* Urban Furniture Design Tokens */
-    --background: 0 0% 96%;       /* #F6F7F5 — cool paper */
-    --foreground: 210 11% 9%;     /* #14171A — ink */
-    --card: 0 0% 100%;            /* #FFFFFF — surface */
-    --card-foreground: 210 11% 9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 11% 9%;
-    --primary: 163 50% 24%;       /* #1F5C4E — ledger green */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 150 5% 88%;      /* #DFE3E0 */
-    --secondary-foreground: 210 11% 9%;
-    --muted: 150 5% 88%;
-    --muted-foreground: 160 5% 37%; /* #5B6560 */
-    --accent: 163 27% 93%;        /* #E8F0EE — light green tint */
-    --accent-foreground: 163 50% 24%;
-    --destructive: 3 72% 40%;     /* #B3261E — debit red */
-    --destructive-foreground: 0 0% 100%;
-    --border: 150 7% 87%;         /* #DFE3E0 */
-    --input: 150 7% 87%;
-    --ring: 163 50% 24%;
-    --radius: 0.375rem;           /* 6px — tight, ledger-like */
-  }
+@theme {
+  --color-uf-bg: #F6F7F5;
+  --color-uf-surface: #FFFFFF;
+  --color-uf-ink: #14171A;
+  --color-uf-muted: #5B6560;
+  --color-uf-green: #1F5C4E;
+  --color-uf-green-light: #E8F0EE;
+  --color-uf-border: #DFE3E0;
+  --color-uf-red: #B3261E;
+  --color-uf-amber: #B7791F;
+
+  --color-border: hsl(150 7% 87%);
+  --color-input: hsl(150 7% 87%);
+  --color-ring: hsl(163 50% 24%);
+  --color-background: hsl(0 0% 96%);
+  --color-foreground: hsl(210 11% 9%);
+
+  --color-primary: hsl(163 50% 24%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(150 5% 88%);
+  --color-secondary-foreground: hsl(210 11% 9%);
+  --color-destructive: hsl(3 72% 40%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-muted: hsl(150 5% 88%);
+  --color-muted-foreground: hsl(160 5% 37%);
+  --color-accent: hsl(163 27% 93%);
+  --color-accent-foreground: hsl(163 50% 24%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(210 11% 9%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(210 11% 9%);
+
+  --radius-lg: 0.375rem;
+  --radius-md: calc(0.375rem - 2px);
+  --radius-sm: calc(0.375rem - 4px);
+
+  --font-sans: "IBM Plex Sans", "system-ui", "sans-serif";
+  --font-serif: "IBM Plex Serif", "Georgia", "serif";
+  --font-mono: "IBM Plex Mono", "monospace";
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--color-border);
     box-sizing: border-box;
   }
 
   html {
-    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "kern" 1, "liga" 1;
   }
 
   body {
-    @apply bg-uf-bg text-uf-ink font-sans;
+    background-color: var(--color-uf-bg);
+    color: var(--color-uf-ink);
+    font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.5;
   }
 
   h1, h2, h3 {
-    @apply font-serif;
+    font-family: var(--font-serif);
   }
 
-  h1 { @apply text-2xl font-semibold; }
-  h2 { @apply text-xl font-semibold; }
-  h3 { @apply text-base font-semibold; }
+  h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; }
+  h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+  h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
 }
 
 @layer utilities {
-  /* Tabular numerals — mandatory for all ledger figures */
   .tabular {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
   }
 
-  /* Ruled ledger line for tables */
   .ledger-row {
-    @apply border-b border-uf-border;
+    border-bottom: 1px solid var(--color-uf-border);
   }
 
-  /* Status badge base */
-  .status-draft    { @apply bg-amber-50 text-amber-700 border border-amber-200; }
-  .status-confirmed { @apply bg-uf-green-light text-uf-green border border-uf-green/20; }
-  .status-paid     { @apply bg-green-50 text-green-700 border border-green-200; }
-  .status-cancelled { @apply bg-red-50 text-uf-red border border-red-200; }
-  .status-partially-paid { @apply bg-blue-50 text-blue-700 border border-blue-200; }
+  .status-draft { background-color: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
+  .status-confirmed { background-color: var(--color-uf-green-light); color: var(--color-uf-green); border: 1px solid color-mix(in srgb, var(--color-uf-green) 20%, transparent); }
+  .status-paid { background-color: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+  .status-cancelled { background-color: #FEF2F2; color: var(--color-uf-red); border: 1px solid #FECACA; }
+  .status-partially-paid { background-color: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
 
-  /* Debit/Credit color coding */
-  .debit  { @apply text-uf-red tabular; }
-  .credit { @apply text-uf-green tabular; }
-  .amount { @apply tabular text-right; }
+  .debit { color: var(--color-uf-red); font-variant-numeric: tabular-nums; }
+  .credit { color: var(--color-uf-green); font-variant-numeric: tabular-nums; }
+  .amount { font-variant-numeric: tabular-nums; text-align: right; }
 }

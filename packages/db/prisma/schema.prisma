@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -72,7 +71,6 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  budgetsOwned Budget[] @relation("BudgetResponsible")
 }
 
 model Contact {
@@ -95,6 +93,7 @@ model Contact {
   salesOrders      SalesOrder[]
   customerInvoices CustomerInvoice[]
   payments         Payment[]
+  budgetsResponsible Budget[] @relation("BudgetResponsible")
 }
 
 model Product {
@@ -176,22 +175,37 @@ model AnalyticAccount {
   type      AnalyticType
   createdAt DateTime     @default(now())
 
-  journalItems JournalItem[]
-  budgets      Budget[]
+  journalItems        JournalItem[]
+  budgets             Budget[]
+  purchaseOrderLines  PurchaseOrderLine[]
+  vendorBillLines     VendorBillLine[]
+  salesOrderLines     SalesOrderLine[]
+  customerInvoiceLines CustomerInvoiceLine[]
+}
+
+enum BudgetStatus {
+  DRAFT
+  CONFIRMED
+  REVISED
+  CANCELLED
 }
 
 model Budget {
-  id                String          @id @default(cuid())
-  name              String
-  period            String          // e.g. "2026-Q1"
-  periodStart       DateTime
-  periodEnd         DateTime
-  plannedAmount     Decimal         @db.Decimal(14, 2)
-  analyticAccount   AnalyticAccount @relation(fields: [analyticAccountId], references: [id])
-  analyticAccountId String
-  responsiblePerson User            @relation("BudgetResponsible", fields: [responsibleUserId], references: [id])
-  responsibleUserId String
-  createdAt         DateTime        @default(now())
+  id                   String          @id @default(cuid())
+  name                 String
+  periodStart          DateTime
+  periodEnd            DateTime
+  committedAmount      Decimal         @db.Decimal(14, 2)
+  analyticAccount      AnalyticAccount @relation(fields: [analyticAccountId], references: [id])
+  analyticAccountId    String
+  responsiblePerson    Contact         @relation("BudgetResponsible", fields: [responsibleContactId], references: [id])
+  responsibleContactId String
+  status               BudgetStatus    @default(DRAFT)
+  revisedFrom          Budget?         @relation("BudgetRevision", fields: [revisedFromId], references: [id])
+  revisedFromId        String?         @unique
+  revisedTo            Budget?         @relation("BudgetRevision")
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 }
 
 model PurchaseOrder {
@@ -212,6 +226,8 @@ model PurchaseOrderLine {
   purchaseOrderId String
   product         Product       @relation(fields: [productId], references: [id])
   productId       String
+  analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
+  analyticAccountId String?
   quantity        Decimal       @db.Decimal(14, 2)
   unitPrice       Decimal       @db.Decimal(14, 2)
 }
@@ -239,6 +255,8 @@ model VendorBillLine {
   billId    String
   product   Product    @relation(fields: [productId], references: [id])
   productId String
+  analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
+  analyticAccountId String?
   quantity  Decimal    @db.Decimal(14, 2)
   unitPrice Decimal    @db.Decimal(14, 2)
 }
@@ -261,6 +279,8 @@ model SalesOrderLine {
   salesOrderId String
   product      Product    @relation(fields: [productId], references: [id])
   productId    String
+  analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
+  analyticAccountId String?
   quantity     Decimal    @db.Decimal(14, 2)
   unitPrice    Decimal    @db.Decimal(14, 2)
   taxPercent   Decimal    @default(0) @db.Decimal(5, 2)
@@ -290,6 +310,8 @@ model CustomerInvoiceLine {
   invoiceId  String
   product    Product         @relation(fields: [productId], references: [id])
   productId  String
+  analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
+  analyticAccountId String?
   quantity   Decimal         @db.Decimal(14, 2)
   unitPrice  Decimal         @db.Decimal(14, 2)
   taxPercent Decimal         @default(0) @db.Decimal(5, 2)

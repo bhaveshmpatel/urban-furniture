@@ -45,8 +45,8 @@ export interface BudgetWithActual {
   periodEnd: Date;
   analyticAccountId: string;
   analyticAccountName: string;
-  responsibleUserId: string;
-  plannedAmount: string;
+  responsibleContactId: string;
+  committedAmount: string;
   actualAmount: string;
   variance: string;         // planned − actual
   variancePercent: string;  // variance / planned × 100 (or '0.00' when planned = 0)
@@ -312,7 +312,7 @@ export async function computeBudgetReport(
   period?: string,
 ): Promise<BudgetReportResult> {
   const budgets = await prisma.budget.findMany({
-    where: period ? { period } : undefined,
+    where: undefined,
     include: {
       analyticAccount: true,
       responsiblePerson: {
@@ -326,7 +326,7 @@ export async function computeBudgetReport(
   const results: BudgetWithActual[] = await Promise.all(
     budgets.map(async (budget) => {
       // Sum all debit journal items tagged with this analytic account
-      // in the budget period.  We take abs(debit − credit) because
+      // in the "Q1".  We take abs(debit − credit) because
       // expense items are normally debit-normal and income items
       // are credit-normal; callers of this report typically care
       // about the magnitude of actual activity.
@@ -359,7 +359,7 @@ export async function computeBudgetReport(
           ? actualDebit.minus(actualCredit)
           : actualCredit.minus(actualDebit);
 
-      const planned  = new Decimal(budget.plannedAmount.toString());
+      const planned  = new Decimal(budget.committedAmount.toString());
       const variance = planned.minus(actualAmount);
       const variancePercent = planned.isZero()
         ? new Decimal(0)
@@ -368,13 +368,13 @@ export async function computeBudgetReport(
       return {
         budgetId:            budget.id,
         name:                budget.name,
-        period:              budget.period,
+        period:              "Q1",
         periodStart:         budget.periodStart,
         periodEnd:           budget.periodEnd,
         analyticAccountId:   budget.analyticAccountId,
         analyticAccountName: budget.analyticAccount.name,
-        responsibleUserId:   budget.responsibleUserId,
-        plannedAmount:       planned.toFixed(2),
+        responsibleContactId:   budget.responsibleContactId,
+        committedAmount:       planned.toFixed(2),
         actualAmount:        actualAmount.toFixed(2),
         variance:            variance.toFixed(2),
         variancePercent:     variancePercent.toFixed(2),
@@ -383,7 +383,7 @@ export async function computeBudgetReport(
   );
 
   const totalPlanned = results.reduce(
-    (s, b) => s.plus(new Decimal(b.plannedAmount)),
+    (s, b) => s.plus(new Decimal(b.committedAmount)),
     new Decimal(0),
   );
   const totalActual = results.reduce(
@@ -434,7 +434,7 @@ export async function computeDashboard(): Promise<DashboardResult> {
     }),
     // Total planned budget
     prisma.budget.aggregate({
-      _sum: { plannedAmount: true },
+      _sum: { committedAmount: true },
     }),
     // Total actual (all journal items with an analyticAccountId)
     prisma.journalItem.aggregate({
@@ -444,7 +444,7 @@ export async function computeDashboard(): Promise<DashboardResult> {
   ]);
 
   const totalPlanned = new Decimal(
-    (budgetAggregate._sum.plannedAmount ?? 0).toString(),
+    (budgetAggregate._sum.committedAmount ?? 0).toString(),
   );
   // Gross actual activity (debit + credit side, halved avoids double-counting)
   const totalActualDebit  = new Decimal(

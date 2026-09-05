@@ -1,6 +1,6 @@
 import { prisma } from '@repo/db';
 import Decimal from 'decimal.js';
-import { postJournalEntry, LedgerError } from './ledger.js';
+import { postJournalEntry, LedgerError } from './ledger';
 
 // ---------------------------------------------------------------------------
 // Account code constants (fixed in seed data)
