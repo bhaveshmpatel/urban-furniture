@@ -39,3 +39,8 @@ yarn-error.log*
 
 *.sh
 prompt.md
+
+# Ignore root scripts and prompts
+/*.js
+/*.sh
+prompt.md
