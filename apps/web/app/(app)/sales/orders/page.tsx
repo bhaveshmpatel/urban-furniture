@@ -12,6 +12,10 @@ import { Plus, Trash2 } from "lucide-react";
 export default function SalesOrdersPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -21,15 +25,45 @@ export default function SalesOrdersPage() {
   const [analytics, setAnalytics] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchData();
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+  useEffect(() => {
     fetchDependencies();
   }, []);
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get("id");
+    if (id && orders.length > 0) {
+      const order = orders.find(o => o.id === id);
+      if (order) {
+        handleRowClick(order);
+        // Remove id from URL without reloading
+        window.history.replaceState({}, '', '/sales/orders');
+      }
+    }
+  }, [orders]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
+
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/sales-orders");
-    const data = await res.json();
-    setOrders(data || []);
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/sales-orders?${params.toString()}`);
+    const json = await res.json();
+    setOrders(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -59,12 +93,30 @@ export default function SalesOrdersPage() {
     fetchData();
   };
 
-  const filteredOrders = orders.filter(o => 
-    o.customer?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    o.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredOrders = orders;
 
   const renderList = () => (
+    <div>
+
+    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="ALL">All</option>
+          <option value="DRAFT">Draft</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <option value="NEWEST">Newest First</option>
+          <option value="OLDEST">Oldest First</option>
+        </select>
+      </div>
+    </div>
+  
     <div className="rounded-md border border-uf-border bg-white shadow-sm">
       <Table>
         <TableHeader>
@@ -93,9 +145,31 @@ export default function SalesOrdersPage() {
         </TableBody>
       </Table>
     </div>
+    </div>
   );
 
   const renderKanban = () => (
+    <div>
+
+    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="ALL">All</option>
+          <option value="DRAFT">Draft</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <option value="NEWEST">Newest First</option>
+          <option value="OLDEST">Oldest First</option>
+        </select>
+      </div>
+    </div>
+  
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredOrders.map(o => (
         <div key={o.id} onClick={() => handleRowClick(o)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
@@ -107,6 +181,7 @@ export default function SalesOrdersPage() {
           <div className="text-xs text-gray-500">{new Date(o.orderDate).toLocaleDateString()}</div>
         </div>
       ))}
+    </div>
     </div>
   );
 
@@ -133,6 +208,7 @@ export default function SalesOrdersPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }
@@ -209,10 +285,10 @@ function SalesOrderForm({ order, customers, products, analytics, onSave }: any) 
     <div className="bg-white rounded-md shadow-sm border p-6">
       <div className="flex justify-between items-center mb-6 pb-4 border-b">
         <div>
-          <h2 className="text-xl font-bold">{isNew ? "New Sales Order" : `SO-${order.id.slice(-8).toUpperCase()}`}</h2>
+          <h2 className="text-xl font-bold">{isNew ? "New Sales Order" : `SO-${order.orderNumber?.toString().padStart(5, "0")}`}</h2>
           {!isNew && order.invoice && (
-            <div className="text-sm mt-1 text-blue-600 font-medium">
-              Linked Invoice: INV/{order.invoice.id.slice(-8).toUpperCase()} ({order.invoice.status})
+            <div className="text-sm mt-1 font-medium">
+              Linked Invoice: <a href={`/sales/invoices?id=${order.invoice.id}`} className="text-blue-600 hover:underline">INV/{order.invoice.id.slice(-8).toUpperCase()}</a> ({order.invoice.status})
             </div>
           )}
         </div>

@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutGrid, List as ListIcon, ArrowLeft } from "lucide-react";
+import { Plus, LayoutGrid, List as ListIcon, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 export type ViewType = "list" | "kanban" | "form";
+
+interface PaginationProps {
+  page: number;
+  totalPages: number;
+  setPage: (p: number) => void;
+}
 
 interface MasterDataLayoutProps {
   title: string;
@@ -18,10 +24,11 @@ interface MasterDataLayoutProps {
   renderKanban: () => React.ReactNode;
   renderForm: () => React.ReactNode;
   hideNewButton?: boolean;
+  pagination?: PaginationProps;
 }
 
 export function MasterDataLayout({
-  title, subtitle, view, setView, onNew, onBack, searchQuery, setSearchQuery, renderList, renderKanban, renderForm, hideNewButton
+  title, subtitle, view, setView, onNew, onBack, searchQuery, setSearchQuery, renderList, renderKanban, renderForm, hideNewButton, pagination
 }: MasterDataLayoutProps) {
   return (
     <div className="space-y-6">
@@ -76,6 +83,32 @@ export function MasterDataLayout({
         {view === "kanban" && renderKanban()}
         {view === "form" && renderForm()}
       </div>
+
+      {view !== "form" && pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white p-4 rounded-md border shadow-sm mt-4">
+          <div className="text-sm text-gray-500">
+            Page {pagination.page} of {pagination.totalPages}
+          </div>
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={pagination.page <= 1}
+              onClick={() => pagination.setPage(pagination.page - 1)}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => pagination.setPage(pagination.page + 1)}
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,24 +12,57 @@ import { Plus, Trash2 } from "lucide-react";
 export default function PurchaseOrdersPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const [vendors, setVendors] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [analytics, setAnalytics] = useState<any[]>([]);
+  const [activeBudgets, setActiveBudgets] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchData();
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+  useEffect(() => {
     fetchDependencies();
   }, []);
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get("id");
+    if (id && orders.length > 0) {
+      const order = orders.find(o => o.id === id);
+      if (order) {
+        handleRowClick(order);
+        window.history.replaceState({}, '', '/purchase/orders');
+      }
+    }
+  }, [orders]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
+
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/purchase-orders");
-    const data = await res.json();
-    setOrders(data || []);
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/purchase-orders?${params.toString()}`);
+    const json = await res.json();
+    setOrders(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -38,8 +71,8 @@ export default function PurchaseOrdersPage() {
     setVendors((await resV.json()).filter((v: any) => v.type === "VENDOR" || v.type === "BOTH"));
     const resP = await fetch("/api/products");
     setProducts(await resP.json());
-    const resA = await fetch("/api/analytic-accounts");
-    setAnalytics(await resA.json());
+    const resB = await fetch("/api/reports/budget?status=CONFIRMED");
+    setActiveBudgets(await resB.json());
   };
 
   const handleRowClick = async (o: any) => {
@@ -58,12 +91,30 @@ export default function PurchaseOrdersPage() {
     fetchData();
   };
 
-  const filteredOrders = orders.filter(o => 
-    o.vendor?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    o.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredOrders = orders;
 
   const renderList = () => (
+    <div>
+
+    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="ALL">All</option>
+          <option value="DRAFT">Draft</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <option value="NEWEST">Newest First</option>
+          <option value="OLDEST">Oldest First</option>
+        </select>
+      </div>
+    </div>
+  
     <div className="rounded-md border border-uf-border bg-white shadow-sm">
       <Table>
         <TableHeader>
@@ -82,7 +133,7 @@ export default function PurchaseOrdersPage() {
           ) : (
             filteredOrders.map(o => (
               <TableRow key={o.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleRowClick(o)}>
-                <TableCell className="font-medium text-uf-green">{o.id.slice(-8).toUpperCase()}</TableCell>
+                <TableCell className="font-medium text-uf-green">PO-{o.orderNumber?.toString().padStart(5, '0')}</TableCell>
                 <TableCell>{o.vendor?.name}</TableCell>
                 <TableCell>{new Date(o.orderDate).toLocaleDateString()}</TableCell>
                 <TableCell><Badge variant="outline">{o.status}</Badge></TableCell>
@@ -92,14 +143,36 @@ export default function PurchaseOrdersPage() {
         </TableBody>
       </Table>
     </div>
+    </div>
   );
 
   const renderKanban = () => (
+    <div>
+
+    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="ALL">All</option>
+          <option value="DRAFT">Draft</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <option value="NEWEST">Newest First</option>
+          <option value="OLDEST">Oldest First</option>
+        </select>
+      </div>
+    </div>
+  
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredOrders.map(o => (
         <div key={o.id} onClick={() => handleRowClick(o)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-uf-green">{o.id.slice(-8).toUpperCase()}</h3>
+            <h3 className="font-bold text-uf-green">PO-{o.orderNumber?.toString().padStart(5, '0')}</h3>
             <Badge variant="outline">{o.status}</Badge>
           </div>
           <div className="text-sm text-gray-800 font-medium mb-1">{o.vendor?.name}</div>
@@ -107,22 +180,15 @@ export default function PurchaseOrdersPage() {
         </div>
       ))}
     </div>
+    </div>
   );
 
-  const renderForm = () => (
-    <PurchaseOrderForm 
-      order={selectedOrder} 
-      vendors={vendors} 
-      products={products} 
-      analytics={analytics} 
-      onSave={handleBack} 
-    />
-  );
+  const renderForm = () => <PurchaseOrderForm order={selectedOrder} vendors={vendors} products={products} activeBudgets={activeBudgets} onSave={handleBack} />;
 
   return (
     <MasterDataLayout
       title="Purchase Orders"
-      subtitle="Manage your procurement and vendor orders."
+      subtitle="Manage purchase orders and convert them to vendor bills."
       view={view}
       setView={setView}
       onNew={handleNew}
@@ -132,11 +198,12 @@ export default function PurchaseOrdersPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }
 
-function PurchaseOrderForm({ order, vendors, products, analytics, onSave }: any) {
+function PurchaseOrderForm({ order, vendors, products, activeBudgets, onSave }: any) {
   const [formData, setFormData] = useState<any>(order || {
     vendorId: "", orderDate: new Date().toISOString().split('T')[0], lines: []
   });
@@ -209,10 +276,10 @@ function PurchaseOrderForm({ order, vendors, products, analytics, onSave }: any)
     <div className="bg-white rounded-md shadow-sm border p-6">
       <div className="flex justify-between items-center mb-6 pb-4 border-b">
         <div>
-          <h2 className="text-xl font-bold">{isNew ? "New Purchase Order" : `PO-${order.id.slice(-8).toUpperCase()}`}</h2>
+          <h2 className="text-xl font-bold">{isNew ? "New Purchase Order" : `PO-${order.orderNumber?.toString().padStart(5, "0")}`}</h2>
           {!isNew && order.bill && (
-            <div className="text-sm mt-1 text-blue-600 font-medium">
-              Linked Bill: BILL-{order.bill.id.slice(-8).toUpperCase()} ({order.bill.status})
+            <div className="text-sm mt-1 font-medium">
+              Linked Bill: <a href={`/purchase/bills?id=${order.bill.id}`} className="text-blue-600 hover:underline">BILL-{order.bill.id.slice(-8).toUpperCase()}</a> ({order.bill.status})
             </div>
           )}
         </div>
@@ -256,7 +323,7 @@ function PurchaseOrderForm({ order, vendors, products, analytics, onSave }: any)
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Analytic Account</TableHead>
+                  <TableHead>Budget</TableHead>
                   <TableHead className="w-24">Quantity</TableHead>
                   <TableHead className="w-32">Unit Price</TableHead>
                   <TableHead className="w-32 text-right">Subtotal</TableHead>
@@ -275,11 +342,14 @@ function PurchaseOrderForm({ order, vendors, products, analytics, onSave }: any)
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Select value={line.analyticAccountId || "none"} onValueChange={v => handleLineChange(idx, "analyticAccountId", v === "none" ? null : v)} disabled={!isNew && status !== "DRAFT"}>
-                        <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                      <Select required value={line.analyticAccountId || ""} onValueChange={v => handleLineChange(idx, "analyticAccountId", v)} disabled={!isNew && status !== "DRAFT"}>
+                        <SelectTrigger><SelectValue placeholder="Select Budget" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {analytics.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                          {activeBudgets.map((b: any) => (
+                            <SelectItem key={b.id} value={b.analyticAccountId}>
+                              {b.name} (₹{Number(b.balance).toLocaleString()} rem.)
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </TableCell>

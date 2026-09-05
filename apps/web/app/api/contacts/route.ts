@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
+import { withPagination } from "@repo/core";
 
-export async function GET() {
-  const data = await prisma.contact.findMany({ where: { isArchived: false } });
-  return NextResponse.json(data);
+export async function GET(req: Request) {
+  const result = await withPagination(req, prisma.contact, { filterField: 'type', searchFields: ['name', 'email', 'phone'] });
+  return NextResponse.json(result);
 }
 export async function POST(req: Request) {
   const json = await req.json();

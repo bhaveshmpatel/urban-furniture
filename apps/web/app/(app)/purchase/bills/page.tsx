@@ -13,24 +13,57 @@ import { Plus, Trash2 } from "lucide-react";
 export default function VendorBillsPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<any>(null);
 
   const [vendors, setVendors] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [analytics, setAnalytics] = useState<any[]>([]);
+  const [activeBudgets, setActiveBudgets] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchData();
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+  useEffect(() => {
     fetchDependencies();
   }, []);
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get("id");
+    if (id && bills.length > 0) {
+      const bill = bills.find(b => b.id === id);
+      if (bill) {
+        handleRowClick(bill);
+        window.history.replaceState({}, '', '/purchase/bills');
+      }
+    }
+  }, [bills]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
+
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/vendor-bills");
-    const data = await res.json();
-    setBills(data || []);
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/vendor-bills?${params.toString()}`);
+    const json = await res.json();
+    setBills(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -39,8 +72,8 @@ export default function VendorBillsPage() {
     setVendors((await resV.json()).filter((v: any) => v.type === "VENDOR" || v.type === "BOTH"));
     const resP = await fetch("/api/products");
     setProducts(await resP.json());
-    const resA = await fetch("/api/analytic-accounts");
-    setAnalytics(await resA.json());
+    const resB = await fetch("/api/reports/budget?status=CONFIRMED");
+    setActiveBudgets(await resB.json());
   };
 
   const handleRowClick = async (b: any) => {
@@ -59,12 +92,30 @@ export default function VendorBillsPage() {
     fetchData();
   };
 
-  const filteredBills = bills.filter(b => 
-    b.vendor?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    b.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBills = bills;
 
   const renderList = () => (
+    <div>
+
+    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="ALL">All</option>
+          <option value="DRAFT">Draft</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <option value="NEWEST">Newest First</option>
+          <option value="OLDEST">Oldest First</option>
+        </select>
+      </div>
+    </div>
+  
     <div className="rounded-md border border-uf-border bg-white shadow-sm">
       <Table>
         <TableHeader>
@@ -97,9 +148,31 @@ export default function VendorBillsPage() {
         </TableBody>
       </Table>
     </div>
+    </div>
   );
 
   const renderKanban = () => (
+    <div>
+
+    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="ALL">All</option>
+          <option value="DRAFT">Draft</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div className="flex space-x-4 items-center">
+        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <option value="NEWEST">Newest First</option>
+          <option value="OLDEST">Oldest First</option>
+        </select>
+      </div>
+    </div>
+  
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredBills.map(b => (
         <div key={b.id} onClick={() => handleRowClick(b)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
@@ -120,6 +193,7 @@ export default function VendorBillsPage() {
         </div>
       ))}
     </div>
+    </div>
   );
 
   const renderForm = () => (
@@ -127,7 +201,7 @@ export default function VendorBillsPage() {
       bill={selectedBill} 
       vendors={vendors} 
       products={products} 
-      analytics={analytics} 
+      activeBudgets={activeBudgets} 
       onSave={handleBack} 
     />
   );
@@ -145,11 +219,12 @@ export default function VendorBillsPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }
 
-function VendorBillForm({ bill, vendors, products, analytics, onSave }: any) {
+function VendorBillForm({ bill, vendors, products, activeBudgets, onSave }: any) {
   const [formData, setFormData] = useState<any>(bill || {
     vendorId: "", invoiceDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], taxAmount: 0, lines: []
   });
@@ -240,10 +315,10 @@ function VendorBillForm({ bill, vendors, products, analytics, onSave }: any) {
     <div className="bg-white rounded-md shadow-sm border p-6">
       <div className="flex justify-between items-center mb-6 pb-4 border-b">
         <div>
-          <h2 className="text-xl font-bold">{isNew ? "New Vendor Bill" : `BILL-${bill.id.slice(-8).toUpperCase()}`}</h2>
+          <h2 className="text-xl font-bold">{isNew ? "New Vendor Bill" : `BILL-${bill.billNumber?.toString().padStart(5, "0")}`}</h2>
           {!isNew && bill.purchaseOrder && (
-            <div className="text-sm mt-1 text-blue-600 font-medium">
-              Source PO: PO-{bill.purchaseOrderId.slice(-8).toUpperCase()}
+            <div className="text-sm mt-1 font-medium">
+              Source PO: <a href={`/purchase/orders?id=${bill.purchaseOrderId}`} className="text-blue-600 hover:underline">PO-{bill.purchaseOrderId.slice(-8).toUpperCase()}</a>
             </div>
           )}
         </div>
@@ -318,7 +393,7 @@ function VendorBillForm({ bill, vendors, products, analytics, onSave }: any) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Analytic Account</TableHead>
+                  <TableHead>Budget</TableHead>
                   <TableHead className="w-24">Quantity</TableHead>
                   <TableHead className="w-32">Unit Price</TableHead>
                   <TableHead className="w-32 text-right">Subtotal</TableHead>
@@ -337,11 +412,14 @@ function VendorBillForm({ bill, vendors, products, analytics, onSave }: any) {
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Select value={line.analyticAccountId || "none"} onValueChange={v => handleLineChange(idx, "analyticAccountId", v === "none" ? null : v)} disabled={!isNew && status !== "DRAFT"}>
-                        <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                      <Select required value={line.analyticAccountId || ""} onValueChange={v => handleLineChange(idx, "analyticAccountId", v)} disabled={!isNew && status !== "DRAFT"}>
+                        <SelectTrigger><SelectValue placeholder="Select Budget" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {analytics.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                          {activeBudgets.map((b: any) => (
+                            <SelectItem key={b.id} value={b.analyticAccountId}>
+                              {b.name} (₹{Number(b.balance).toLocaleString()} rem.)
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </TableCell>

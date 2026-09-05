@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
+import { withPagination } from "@repo/core";
 
 export async function GET() {
   try {

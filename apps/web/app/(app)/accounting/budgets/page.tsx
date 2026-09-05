@@ -12,6 +12,10 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 export default function BudgetsPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [budgets, setBudgets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
@@ -21,15 +25,28 @@ export default function BudgetsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchData();
-    fetchFormDependencies();
-  }, []);
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
 
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/reports/budget");
-    const data = await res.json();
-    setBudgets(data || []);
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/budgets?${params.toString()}`);
+    const json = await res.json();
+    setBudgets(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -57,7 +74,7 @@ export default function BudgetsPage() {
     fetchData();
   };
 
-  const filteredBudgets = budgets.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredBudgets = budgets;
 
   const MiniPieChart = ({ achieved, balance }: { achieved: number, balance: number }) => {
     const data = [
@@ -152,6 +169,7 @@ export default function BudgetsPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }

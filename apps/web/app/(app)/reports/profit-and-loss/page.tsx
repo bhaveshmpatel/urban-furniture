@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Printer } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const YEARS = [2024, 2025, 2026, 2027];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function ProfitAndLossPage() {
   const router = useRouter();
@@ -29,18 +31,39 @@ export default function ProfitAndLossPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64">Loading...</div>;
 
-  const netProfit = Number(data?.netProfit || 0);
-  const isProfit = netProfit >= 0;
+  const months = data?.months || [];
+  const yearly = data?.yearly || {};
+
+  // Get unique account IDs across all months
+  const incomeMap = new Map();
+  const expenseMap = new Map();
+
+  months.forEach((m: any) => {
+    m.incomeAccounts?.forEach((a: any) => incomeMap.set(a.accountId, a.accountName));
+    m.expenseAccounts?.forEach((a: any) => expenseMap.set(a.accountId, a.accountName));
+  });
+
+  const getBalances = (monthsData: any[], accountId: string, type: 'incomeAccounts' | 'expenseAccounts') => {
+    return monthsData.map((m: any) => {
+      const acc = m[type]?.find((a: any) => a.accountId === accountId);
+      return Number(acc?.balance || 0);
+    });
+  };
+
+  const getYearlyBalance = (accountId: string, type: 'incomeAccounts' | 'expenseAccounts') => {
+    const acc = yearly[type]?.find((a: any) => a.accountId === accountId);
+    return Number(acc?.balance || 0);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
+    <div className="p-8">
       {/* Header */}
       <div className="flex justify-between items-center mb-8 print:hidden">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}><ArrowLeft className="h-5 w-5" /></Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Profit & Loss</h1>
-            <p className="text-gray-500 text-sm">Statement of Income & Expenses</p>
+            <p className="text-gray-500 text-sm">Statement of Income & Expenses (Monthly)</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -57,60 +80,77 @@ export default function ProfitAndLossPage() {
         </div>
       </div>
 
-      {/* Report */}
-      <div className="bg-white rounded-xl shadow-sm border p-8">
-        <div className="text-center mb-8">
-          <h2 className="text-xl font-bold">Urban Furniture</h2>
-          <p className="text-gray-500">Profit & Loss Statement — {year}</p>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
+        <Table className="min-w-[1300px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[300px] sticky left-0 bg-gray-50 z-10 border-r shadow-[1px_0_0_rgba(0,0,0,0.1)]">Account</TableHead>
+              {MONTHS.map(m => (
+                <TableHead key={m} className="text-right whitespace-nowrap">{m} {year}</TableHead>
+              ))}
+              <TableHead className="text-right bg-blue-50 font-bold border-l">Total YTD</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {/* INCOME */}
+            <TableRow className="bg-gray-100 hover:bg-gray-100">
+              <TableCell colSpan={14} className="font-bold sticky left-0">INCOME</TableCell>
+            </TableRow>
+            {Array.from(incomeMap.entries()).map(([id, name]) => (
+              <TableRow key={id}>
+                <TableCell className="sticky left-0 bg-white border-r shadow-[1px_0_0_rgba(0,0,0,0.1)]">{name}</TableCell>
+                {getBalances(months, id, 'incomeAccounts').map((bal, i) => (
+                  <TableCell key={i} className="text-right">₹{bal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                ))}
+                <TableCell className="text-right bg-blue-50/50 border-l font-medium">₹{getYearlyBalance(id, 'incomeAccounts').toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+              </TableRow>
+            ))}
+            <TableRow className="bg-green-50 font-semibold">
+              <TableCell className="sticky left-0 bg-green-50 border-r shadow-[1px_0_0_rgba(0,0,0,0.1)]">Total Income</TableCell>
+              {months.map((m: any, i: number) => (
+                <TableCell key={i} className="text-right text-green-700">₹{Number(m.totalIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+              ))}
+              <TableCell className="text-right bg-green-100 border-l text-green-800 font-bold">₹{Number(yearly.totalIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+            </TableRow>
 
-        {/* Income */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center py-2 border-b-2 border-gray-800 mb-3">
-            <h3 className="font-bold text-gray-800 uppercase text-sm tracking-wide">Income</h3>
-          </div>
-          {data?.incomeAccounts?.length === 0 ? (
-            <div className="text-gray-400 text-sm py-2 pl-4">No income recorded</div>
-          ) : (
-            data?.incomeAccounts?.map((a: any) => (
-              <div key={a.accountId} className="flex justify-between py-2 pl-4">
-                <span className="text-gray-700">{a.accountName}</span>
-                <span className="font-medium">₹{Number(a.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))
-          )}
-          <div className="flex justify-between py-2 pl-4 border-t font-semibold mt-1">
-            <span>Total Income</span>
-            <span className="text-green-700">₹{Number(data?.totalIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
+            {/* EXPENSES */}
+            <TableRow className="bg-gray-100 hover:bg-gray-100">
+              <TableCell colSpan={14} className="font-bold sticky left-0">EXPENSES</TableCell>
+            </TableRow>
+            {Array.from(expenseMap.entries()).map(([id, name]) => (
+              <TableRow key={id}>
+                <TableCell className="sticky left-0 bg-white border-r shadow-[1px_0_0_rgba(0,0,0,0.1)]">{name}</TableCell>
+                {getBalances(months, id, 'expenseAccounts').map((bal, i) => (
+                  <TableCell key={i} className="text-right">₹{bal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                ))}
+                <TableCell className="text-right bg-blue-50/50 border-l font-medium">₹{getYearlyBalance(id, 'expenseAccounts').toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+              </TableRow>
+            ))}
+            <TableRow className="bg-red-50 font-semibold">
+              <TableCell className="sticky left-0 bg-red-50 border-r shadow-[1px_0_0_rgba(0,0,0,0.1)]">Total Expenses</TableCell>
+              {months.map((m: any, i: number) => (
+                <TableCell key={i} className="text-right text-red-600">₹{Number(m.totalExpenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+              ))}
+              <TableCell className="text-right bg-red-100 border-l text-red-700 font-bold">₹{Number(yearly.totalExpenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+            </TableRow>
 
-        {/* Expenses */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center py-2 border-b-2 border-gray-800 mb-3">
-            <h3 className="font-bold text-gray-800 uppercase text-sm tracking-wide">Expenses</h3>
-          </div>
-          {data?.expenseAccounts?.length === 0 ? (
-            <div className="text-gray-400 text-sm py-2 pl-4">No expenses recorded</div>
-          ) : (
-            data?.expenseAccounts?.map((a: any) => (
-              <div key={a.accountId} className="flex justify-between py-2 pl-4">
-                <span className="text-gray-700">{a.accountName}</span>
-                <span className="font-medium">₹{Number(a.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-            ))
-          )}
-          <div className="flex justify-between py-2 pl-4 border-t font-semibold mt-1">
-            <span>Total Expenses</span>
-            <span className="text-red-700">₹{Number(data?.totalExpenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
-
-        {/* Net Income */}
-        <div className={`flex justify-between py-4 px-4 rounded-lg font-bold text-lg mt-4 ${isProfit ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-          <span>{isProfit ? 'Net Profit' : 'Net Loss'}</span>
-          <span>₹{Math.abs(netProfit).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-        </div>
+            {/* NET PROFIT */}
+            <TableRow className="bg-blue-50 font-bold border-t-2 border-gray-800">
+              <TableCell className="sticky left-0 bg-blue-50 border-r shadow-[1px_0_0_rgba(0,0,0,0.1)]">Net Profit</TableCell>
+              {months.map((m: any, i: number) => {
+                const net = Number(m.netProfit || 0);
+                return (
+                  <TableCell key={i} className={`text-right ${net >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                    ₹{net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </TableCell>
+                );
+              })}
+              <TableCell className={`text-right bg-blue-100 border-l text-lg ${Number(yearly.netProfit || 0) >= 0 ? 'text-green-800' : 'text-red-700'}`}>
+                ₹{Number(yearly.netProfit || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

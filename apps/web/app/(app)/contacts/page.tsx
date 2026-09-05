@@ -12,19 +12,37 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function ContactsPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
 
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/contacts");
-    const data = await res.json();
-    setContacts(data || []);
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/contacts?${params.toString()}`);
+    const json = await res.json();
+    setContacts(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -43,7 +61,7 @@ export default function ContactsPage() {
     fetchData();
   };
 
-  const filteredContacts = contacts.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredContacts = contacts;
 
   const renderList = () => (
     <div className="rounded-md border border-uf-border bg-white shadow-sm">
@@ -116,6 +134,7 @@ export default function ContactsPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }

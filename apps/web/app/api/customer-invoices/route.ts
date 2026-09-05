@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
+import { withPagination } from "@repo/core";
 
-export async function GET() {
-  const data = await prisma.customerInvoice.findMany({ include: { customer: true, salesOrder: true }, orderBy: { createdAt: 'desc' } });
-  return NextResponse.json(data);
+export async function GET(req: Request) {
+  const result = await withPagination(req, prisma.customerInvoice, { include: { customer: true, salesOrder: true }, orderByField: 'invoiceDate', filterField: 'status' });
+  return NextResponse.json(result);
 }
 export async function POST(req: Request) {
   const json = await req.json();

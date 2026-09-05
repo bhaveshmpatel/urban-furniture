@@ -1,29 +1,35 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
+import { withPagination } from "@repo/core";
 import { budgetSchema } from "@repo/validators";
 import { computeAchievedAmount } from "@repo/core";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const budgets = await prisma.budget.findMany({
+    const result = await withPagination(req, prisma.budget, {
       include: {
         analyticAccount: true,
         responsiblePerson: true,
         revisedFrom: true,
         revisedTo: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderByField: 'createdAt',
+      filterField: 'status'
     });
 
+    const isPaginated = req.url.includes("paginate=true");
+    const arrayToEnrich = isPaginated ? (result as any).data : result as any;
+
     const enriched = await Promise.all(
-      budgets.map(async (b) => {
+      arrayToEnrich.map(async (b: any) => {
         const achieved = await computeAchievedAmount(b.id);
         const committedAmount = Number(b.committedAmount);
         const achievedAmount = achieved.toNumber();
         let achievedPercent = 0;
         let amountToAchieve = 0;
         
-        if (b.status === "CONFIRMED") {
+        if (b.status === "CONFIRMED" || b.status === "REVISED") {
           achievedPercent = committedAmount > 0 ? (achievedAmount / committedAmount) * 100 : 0;
           amountToAchieve = committedAmount - achievedAmount;
         }
@@ -37,6 +43,9 @@ export async function GET() {
       })
     );
 
+    if (isPaginated) {
+      return NextResponse.json({ data: enriched, metadata: (result as any).metadata });
+    }
     return NextResponse.json(enriched);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -48,6 +57,13 @@ export async function POST(req: Request) {
     const json = await req.json();
     const parsed = budgetSchema.parse(json);
 
+    const analyticAccount = await prisma.analyticAccount.findUnique({
+      where: { id: parsed.analyticAccountId }
+    });
+    if (!analyticAccount) {
+      return NextResponse.json({ error: "Analytic account not found" }, { status: 400 });
+    }
+
     const budget = await prisma.budget.create({
       data: {
         name: parsed.name,
@@ -55,6 +71,7 @@ export async function POST(req: Request) {
         periodEnd: parsed.periodEnd,
         committedAmount: parsed.committedAmount,
         analyticAccountId: parsed.analyticAccountId,
+        type: analyticAccount.type,
         responsibleContactId: parsed.responsibleContactId,
         status: "DRAFT",
       },

@@ -12,19 +12,37 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function ProductsPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
 
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/products");
-    const data = await res.json();
-    setProducts(data || []);
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/products?${params.toString()}`);
+    const json = await res.json();
+    setProducts(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -43,7 +61,7 @@ export default function ProductsPage() {
     fetchData();
   };
 
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase())));
+  const filteredProducts = products;
 
   const renderList = () => (
     <div className="rounded-md border border-uf-border bg-white shadow-sm">
@@ -132,6 +150,7 @@ export default function ProductsPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }

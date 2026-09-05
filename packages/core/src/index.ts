@@ -1,7 +1,9 @@
 // Budget Engine
 export {
   computeAchievedAmount,
-  reviseBudget
+  getBudgetAchievedDetail,
+  reviseBudget,
+  validateExpenseBudgetLimits
 } from './budget';
 
 // Ledger engine
@@ -35,3 +37,4 @@ export {
 } from './reports';
 
 export { logAudit } from './audit';
+export * from './pagination';

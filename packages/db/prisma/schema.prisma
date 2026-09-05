@@ -213,6 +213,7 @@ model Budget {
   committedAmount      Decimal         @db.Decimal(14, 2)
   analyticAccount      AnalyticAccount @relation(fields: [analyticAccountId], references: [id])
   analyticAccountId    String
+  type                 AnalyticType    @default(EXPENSE)
   responsiblePerson    Contact         @relation("BudgetResponsible", fields: [responsibleContactId], references: [id])
   responsibleContactId String
   status               BudgetStatus    @default(DRAFT)
@@ -224,8 +225,9 @@ model Budget {
 }
 
 model PurchaseOrder {
-  id        String    @id @default(cuid())
-  vendor    Contact   @relation(fields: [vendorId], references: [id])
+  id          String    @id @default(cuid())
+  orderNumber Int       @unique @default(autoincrement())
+  vendor      Contact   @relation(fields: [vendorId], references: [id])
   vendorId  String
   status    DocStatus @default(DRAFT)
   orderDate DateTime  @default(now())
@@ -250,6 +252,7 @@ model PurchaseOrderLine {
 
 model VendorBill {
   id              String        @id @default(cuid())
+  billNumber      Int           @unique @default(autoincrement())
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
   purchaseOrderId String?       @unique
   vendor          Contact       @relation(fields: [vendorId], references: [id])
@@ -280,8 +283,9 @@ model VendorBillLine {
 }
 
 model SalesOrder {
-  id         String    @id @default(cuid())
-  customer   Contact   @relation(fields: [customerId], references: [id])
+  id          String    @id @default(cuid())
+  orderNumber Int       @unique @default(autoincrement())
+  customer    Contact   @relation(fields: [customerId], references: [id])
   customerId String
   status     DocStatus @default(DRAFT)
   orderDate  DateTime  @default(now())
@@ -307,6 +311,7 @@ model SalesOrderLine {
 
 model CustomerInvoice {
   id           String     @id @default(cuid())
+  invoiceNumber Int       @unique @default(autoincrement())
   salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
   salesOrderId String?    @unique
   customer     Contact    @relation(fields: [customerId], references: [id])

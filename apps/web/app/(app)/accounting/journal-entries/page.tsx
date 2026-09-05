@@ -12,6 +12,10 @@ import { Plus, Trash2 } from "lucide-react";
 export default function JournalEntriesPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -22,15 +26,40 @@ export default function JournalEntriesPage() {
   const [analytics, setAnalytics] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchData();
-    fetchDependencies();
-  }, []);
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get("id");
+    if (id && entries.length > 0) {
+      const entry = entries.find(e => e.id === id);
+      if (entry) {
+        handleRowClick(entry);
+        window.history.replaceState({}, '', '/accounting/journal-entries');
+      }
+    }
+  }, [entries]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
 
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/journal-entries");
-    const data = await res.json();
-    if (Array.isArray(data)) { setEntries(data); } else { setEntries([]); console.error(data); }
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/journal-entries?${params.toString()}`);
+    const json = await res.json();
+    setEntries(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -61,10 +90,7 @@ export default function JournalEntriesPage() {
     fetchData();
   };
 
-  const filteredEntries = entries.filter(e => 
-    e.reference?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    e.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEntries = entries;
 
   const renderList = () => (
     <div className="rounded-md border border-uf-border bg-white shadow-sm">
@@ -152,6 +178,7 @@ export default function JournalEntriesPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }

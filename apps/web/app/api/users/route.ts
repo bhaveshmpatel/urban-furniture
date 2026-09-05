@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@repo/db";
+import { withPagination } from "@repo/core";
 import bcrypt from "bcryptjs";
 
-export async function GET() {
-  const data = await prisma.user.findMany({
-    include: { contact: true },
-    orderBy: { createdAt: "desc" }
-  });
-  return NextResponse.json(data);
+export async function GET(req: Request) {
+  const result = await withPagination(req, prisma.user, { include: { contact: true }, searchFields: ['name', 'email'] });
+  return NextResponse.json(result);
 }
 
 export async function POST(req: NextRequest) {

@@ -11,19 +11,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function AnalyticAccountsPage() {
   const [view, setView] = useState<ViewType>("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("NEWEST");
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [page, searchQuery, statusFilter, sortOrder]);
+
+    useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, sortOrder]);
 
   const fetchData = async () => {
     setLoading(true);
-    const res = await fetch("/api/analytic-accounts");
-    const data = await res.json();
-    setAccounts(data || []);
+    const params = new URLSearchParams({
+      paginate: "true",
+      page: page.toString(),
+      limit: "10",
+      search: searchQuery,
+      sortOrder: sortOrder,
+      statusFilter: statusFilter
+    });
+    const res = await fetch(`/api/analytic-accounts?${params.toString()}`);
+    const json = await res.json();
+    setAccounts(json.data || []);
+    setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };
 
@@ -42,7 +60,7 @@ export default function AnalyticAccountsPage() {
     fetchData();
   };
 
-  const filteredAccounts = accounts.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredAccounts = accounts;
 
   const renderList = () => (
     <div className="rounded-md border border-uf-border bg-white shadow-sm">
@@ -99,6 +117,7 @@ export default function AnalyticAccountsPage() {
       renderList={renderList}
       renderKanban={renderKanban}
       renderForm={renderForm}
+      pagination={{ page, totalPages, setPage }}
     />
   );
 }

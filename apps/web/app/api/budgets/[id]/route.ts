@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
 import { budgetSchema } from "@repo/validators";
@@ -23,6 +24,13 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     const json = await req.json();
     const parsed = budgetSchema.parse(json);
 
+    const analyticAccount = await prisma.analyticAccount.findUnique({
+      where: { id: parsed.analyticAccountId }
+    });
+    if (!analyticAccount) {
+      return NextResponse.json({ error: "Analytic account not found" }, { status: 400 });
+    }
+
     const updated = await prisma.budget.update({
       where: { id: params.id },
       data: {
@@ -31,6 +39,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
         periodEnd: parsed.periodEnd,
         committedAmount: parsed.committedAmount,
         analyticAccountId: parsed.analyticAccountId,
+        type: analyticAccount.type,
         responsibleContactId: parsed.responsibleContactId,
       },
     });

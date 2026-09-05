@@ -20,8 +20,9 @@ export default function PortalPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const delay = setTimeout(() => fetchData(), 300);
+    return () => clearTimeout(delay);
+  }, [searchQuery]);
 
   const fetchData = async () => {
     setLoading(true);

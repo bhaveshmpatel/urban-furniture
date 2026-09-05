@@ -9,6 +9,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
   const json = await req.json();
+
+  const missingBudget = json.lines.some((l: any) => !l.analyticAccountId);
+  if (missingBudget) {
+    return NextResponse.json({ error: "All line items must be assigned to a Budget." }, { status: 400 });
+  }
+
   // We'll just delete existing lines and recreate them for simplicity
   await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: params.id } });
   const data = await prisma.purchaseOrder.update({ 

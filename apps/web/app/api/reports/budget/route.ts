@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
 import { computeAchievedAmount } from "@repo/core";
@@ -16,6 +17,8 @@ export async function GET(req: Request) {
       where,
       include: {
         analyticAccount: true,
+        revisedFrom: true,
+        revisedTo: true,
       },
       orderBy: { periodStart: "asc" },
     });

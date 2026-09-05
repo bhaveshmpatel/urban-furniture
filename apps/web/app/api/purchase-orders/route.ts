@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
+import { withPagination } from "@repo/core";
 
-export async function GET() {
-  const data = await prisma.purchaseOrder.findMany({ include: { vendor: true, bill: true }, orderBy: { createdAt: 'desc' } });
-  return NextResponse.json(data);
+export async function GET(req: Request) {
+  const result = await withPagination(req, prisma.purchaseOrder, { include: { vendor: true, bill: true }, orderByField: 'orderDate', filterField: 'status' });
+  return NextResponse.json(result);
 }
 export async function POST(req: Request) {
   const json = await req.json();
+
+  const missingBudget = json.lines.some((l: any) => !l.analyticAccountId);
+  if (missingBudget) {
+    return NextResponse.json({ error: "All line items must be assigned to a Budget." }, { status: 400 });
+  }
+
   const data = await prisma.purchaseOrder.create({ 
     data: {
       vendorId: json.vendorId,
