@@ -25,6 +25,7 @@ export interface JournalItemInput {
   debit?: number | string;
   credit?: number | string;
   analyticAccountId?: string;
+  contactId?: string;
 }
 
 export interface PostJournalEntryInput {
@@ -111,12 +112,14 @@ export async function postJournalEntry(input: PostJournalEntryInput) {
         reference: input.reference,
         sourceType: input.sourceType,
         sourceId: input.sourceId,
+        status: (input as any).status || "POSTED",
         items: {
           create: input.items.map((item) => ({
             accountId: item.accountId,
             debit: item.debit ? new Decimal(item.debit).toFixed(2) : '0.00',
             credit: item.credit ? new Decimal(item.credit).toFixed(2) : '0.00',
             analyticAccountId: item.analyticAccountId ?? null,
+            contactId: item.contactId ?? null,
           })),
         },
       },

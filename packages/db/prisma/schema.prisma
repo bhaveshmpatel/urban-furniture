@@ -41,6 +41,12 @@ enum JournalType {
   GENERAL
 }
 
+enum JournalEntryStatus {
+  DRAFT
+  POSTED
+  CANCELLED
+}
+
 enum DocStatus {
   DRAFT
   CONFIRMED
@@ -93,6 +99,8 @@ model Contact {
   salesOrders      SalesOrder[]
   customerInvoices CustomerInvoice[]
   payments         Payment[]
+  journalItems     JournalItem[]
+
   budgetsResponsible Budget[] @relation("BudgetResponsible")
 }
 
@@ -147,6 +155,7 @@ model JournalEntry {
   reference  String?
   sourceType String? // e.g. "VENDOR_BILL", "CUSTOMER_INVOICE", "PAYMENT"
   sourceId   String? // id of the originating document
+  status     JournalEntryStatus @default(DRAFT)
   createdAt  DateTime @default(now())
 
   items JournalItem[]
@@ -164,6 +173,9 @@ model JournalItem {
   credit            Decimal         @default(0) @db.Decimal(14, 2)
   analyticAccount   AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
   analyticAccountId String?
+  contact           Contact?        @relation(fields: [contactId], references: [id])
+  contactId         String?
+
 
   @@index([accountId])
   @@index([analyticAccountId])
@@ -228,20 +240,22 @@ model PurchaseOrderLine {
   productId       String
   analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
   analyticAccountId String?
+
   quantity        Decimal       @db.Decimal(14, 2)
   unitPrice       Decimal       @db.Decimal(14, 2)
 }
 
 model VendorBill {
   id              String        @id @default(cuid())
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
-  purchaseOrderId String        @unique
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId String?       @unique
   vendor          Contact       @relation(fields: [vendorId], references: [id])
   vendorId        String
   invoiceDate     DateTime
   dueDate         DateTime
   status          DocStatus     @default(DRAFT)
   totalAmount     Decimal       @db.Decimal(14, 2)
+  taxAmount       Decimal       @default(0) @db.Decimal(14, 2)
   amountPaid      Decimal       @default(0) @db.Decimal(14, 2)
   createdAt       DateTime      @default(now())
 
@@ -257,6 +271,7 @@ model VendorBillLine {
   productId String
   analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
   analyticAccountId String?
+
   quantity  Decimal    @db.Decimal(14, 2)
   unitPrice Decimal    @db.Decimal(14, 2)
 }
@@ -281,6 +296,7 @@ model SalesOrderLine {
   productId    String
   analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
   analyticAccountId String?
+
   quantity     Decimal    @db.Decimal(14, 2)
   unitPrice    Decimal    @db.Decimal(14, 2)
   taxPercent   Decimal    @default(0) @db.Decimal(5, 2)
@@ -288,8 +304,8 @@ model SalesOrderLine {
 
 model CustomerInvoice {
   id           String     @id @default(cuid())
-  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id])
-  salesOrderId String     @unique
+  salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
+  salesOrderId String?    @unique
   customer     Contact    @relation(fields: [customerId], references: [id])
   customerId   String
   invoiceDate  DateTime
@@ -312,6 +328,7 @@ model CustomerInvoiceLine {
   productId  String
   analyticAccount AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
   analyticAccountId String?
+
   quantity   Decimal         @db.Decimal(14, 2)
   unitPrice  Decimal         @db.Decimal(14, 2)
   taxPercent Decimal         @default(0) @db.Decimal(5, 2)
