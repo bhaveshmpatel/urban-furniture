@@ -63,7 +63,7 @@ export function MasterDataLayout({
               </Button>
             </div>
             {!hideNewButton && (
-              <Button onClick={onNew} className="bg-uf-green hover:bg-uf-green/90 rounded-xl shadow-sm">
+              <Button onClick={onNew} className="bg-uf-green hover:bg-uf-green/90 shadow-sm">
                 <Plus className="mr-2 h-4 w-4" /> New
               </Button>
             )}
@@ -73,7 +73,7 @@ export function MasterDataLayout({
 
       {view === "form" && (
         <div className="flex items-center space-x-4 mb-2">
-          <Button variant="ghost" onClick={onBack} className="text-slate-500 hover:text-slate-900 rounded-xl hover:bg-white/50">
+          <Button variant="ghost" onClick={onBack} className="text-slate-500 hover:text-slate-900 hover:bg-white/50">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to {title}
           </Button>
         </div>
@@ -94,7 +94,7 @@ export function MasterDataLayout({
             <Button 
               variant="outline" 
               size="sm" 
-              className="rounded-lg bg-white/80 border-slate-200/60 hover:bg-white"
+              className="bg-white/80 border-slate-200/60 hover:bg-white"
               disabled={pagination.page <= 1}
               onClick={() => pagination.setPage(pagination.page - 1)}
             >
@@ -103,7 +103,7 @@ export function MasterDataLayout({
             <Button 
               variant="outline" 
               size="sm" 
-              className="rounded-lg bg-white/80 border-slate-200/60 hover:bg-white"
+              className="bg-white/80 border-slate-200/60 hover:bg-white"
               disabled={pagination.page >= pagination.totalPages}
               onClick={() => pagination.setPage(pagination.page + 1)}
             >

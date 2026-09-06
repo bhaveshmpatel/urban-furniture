@@ -92,7 +92,7 @@ export default function PaymentsPage() {
       ) : (
         data.map((p: any) => (
           <div key={p.id} className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-2">
+            <div className="flex justify-between items-start mb-4">
               <h3 className="font-bold text-uf-ink truncate pr-2" title={p.contact?.name}>{p.contact?.name || "Unknown"}</h3>
               <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md whitespace-nowrap">
                 {p.method}

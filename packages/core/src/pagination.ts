@@ -19,13 +19,28 @@ export async function withPagination(
   const where: any = { ...options.baseWhere };
   
   if (search && options.searchFields && options.searchFields.length > 0) {
-    where.OR = options.searchFields.map(f => ({ [f]: { contains: search, mode: "insensitive" } }));
-    // Try to match IDs too if it looks like a sequence
-    if (search.match(/\d+/)) {
-       const num = parseInt(search.replace(/\D/g, ''));
-       if (!isNaN(num) && options.searchFields.includes('id')) {
-         // This is a hacky way to support sequence numbers in generic search, we'd need to know the seq field name
-       }
+    const orConditions: any[] = [];
+    const num = parseInt(search.replace(/\D/g, ''));
+    
+    for (const f of options.searchFields) {
+      if (f === 'orderNumber' || f === 'billNumber' || f === 'invoiceNumber') {
+        if (!isNaN(num)) {
+          orConditions.push({ [f]: num });
+        }
+      } else if (f.includes('.')) {
+        const parts = f.split('.');
+        const relation = parts[0] as string;
+        const field = parts[1] as string;
+        orConditions.push({ [relation]: { [field]: { contains: search, mode: "insensitive" } } });
+      } else if (f === 'id') {
+        orConditions.push({ [f]: { contains: search } }); // id might not support insensitive depending on DB, but usually cuid is case-sensitive
+      } else {
+        orConditions.push({ [f]: { contains: search, mode: "insensitive" } });
+      }
+    }
+    
+    if (orConditions.length > 0) {
+      where.OR = orConditions;
     }
   }
 

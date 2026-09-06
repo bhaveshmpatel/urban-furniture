@@ -1,5 +1,6 @@
 import { prisma, AccountType } from '@repo/db';
 import Decimal from 'decimal.js';
+import { computeAchievedAmount } from './budget';
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -412,9 +413,8 @@ export async function computeDashboard(): Promise<DashboardResult & { monthlySal
     purchaseOrderRows,
     customerInvoiceRows,
     vendorBillRows,
-    budgetAggregate,
-    budgetActualRows,
     allInvoices,
+    activeBudgets
   ] = await Promise.all([
     // Status counts
     prisma.salesOrder.groupBy({
@@ -433,32 +433,29 @@ export async function computeDashboard(): Promise<DashboardResult & { monthlySal
       by: ['status'],
       _count: { _all: true },
     }),
-    // Total planned budget
-    prisma.budget.aggregate({
-      _sum: { committedAmount: true },
-    }),
-    // Total actual (all journal items with an analyticAccountId)
-    prisma.journalItem.aggregate({
-      where: { analyticAccountId: { not: null } },
-      _sum: { debit: true, credit: true },
-    }),
     // Invoices for monthly sales
     prisma.customerInvoice.findMany({
       where: { status: { in: ['CONFIRMED', 'PARTIALLY_PAID', 'PAID'] } },
       select: { invoiceDate: true, totalAmount: true }
+    }),
+    // Active Budgets
+    prisma.budget.findMany({
+      where: { status: { in: ['CONFIRMED', 'REVISED'] } },
     })
   ]);
+  
+  // Calculate Planned vs Actual using the correct logic (which includes POs)
+  let totalPlannedNum = 0;
+  let totalActualNum = 0;
+  
+  for (const b of activeBudgets) {
+    totalPlannedNum += Number(b.committedAmount || 0);
+    const achieved = await computeAchievedAmount(b.id);
+    totalActualNum += achieved.toNumber();
+  }
 
-  const totalPlanned = new Decimal(
-    (budgetAggregate._sum.committedAmount ?? 0).toString(),
-  );
-  const totalActualDebit  = new Decimal(
-    (budgetActualRows._sum.debit  ?? 0).toString(),
-  );
-  const totalActualCredit = new Decimal(
-    (budgetActualRows._sum.credit ?? 0).toString(),
-  );
-  const totalActual = totalActualDebit.minus(totalActualCredit).abs();
+  const totalPlanned = new Decimal(totalPlannedNum);
+  const totalActual = new Decimal(totalActualNum);
 
   const variancePercent = totalPlanned.isZero()
     ? new Decimal(0)

@@ -64,7 +64,7 @@ export default function ProductsPage() {
   const filteredProducts = products;
 
   const renderList = () => (
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -108,7 +108,7 @@ export default function ProductsPage() {
   const renderKanban = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredProducts.map(p => (
-        <div key={p.id} onClick={() => handleRowClick(p)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+        <div key={p.id} onClick={() => handleRowClick(p)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
           <div className="flex items-start space-x-4 mb-3">
             <Avatar className="h-16 w-16 rounded-md flex-shrink-0">
               <AvatarImage src={p.imageUrl || ""} />
@@ -122,11 +122,11 @@ export default function ProductsPage() {
           </div>
           <div className="flex justify-between items-center text-sm border-t pt-2 mt-2">
             <div>
-              <div className="text-xs text-gray-500">Price</div>
+              <div className="text-xs font-medium text-slate-400 mt-1 flex items-center">Price</div>
               <div className="font-medium">₹{Number(p.salesPrice).toLocaleString()}</div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-gray-500">Cost</div>
+              <div className="text-xs font-medium text-slate-400 mt-1 flex items-center">Cost</div>
               <div className="font-medium">₹{Number(p.costPrice).toLocaleString()}</div>
             </div>
           </div>
@@ -204,8 +204,8 @@ function ProductForm({ product, onSave }: any) {
   };
 
   return (
-    <div className="bg-white rounded-md shadow-sm border p-6">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+    <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/80 ring-1 ring-slate-200/50 p-6 md:p-8 mb-8">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <h2 className="text-xl font-bold">{isNew ? "New Product" : formData.name}</h2>
         <div className="space-x-2">
           {!isNew && <Button variant="destructive" onClick={handleArchive}>Archive</Button>}

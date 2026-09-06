@@ -3,7 +3,7 @@ import { prisma } from "@repo/db";
 import { withPagination } from "@repo/core";
 
 export async function GET(req: Request) {
-  const result = await withPagination(req, prisma.vendorBill, { include: { vendor: true, purchaseOrder: true }, orderByField: 'invoiceDate', filterField: 'status' });
+  const result = await withPagination(req, prisma.vendorBill, { include: { vendor: true, purchaseOrder: true }, orderByField: 'invoiceDate', filterField: 'status', searchFields: ['billNumber', 'vendor.name'] });
   return NextResponse.json(result);
 }
 export async function POST(req: Request) {

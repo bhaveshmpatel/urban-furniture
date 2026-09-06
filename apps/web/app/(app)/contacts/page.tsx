@@ -64,7 +64,7 @@ export default function ContactsPage() {
   const filteredContacts = contacts;
 
   const renderList = () => (
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -182,8 +182,8 @@ function ContactForm({ contact, onSave }: any) {
   };
 
   return (
-    <div className="bg-white rounded-md shadow-sm border p-6">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+    <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/80 ring-1 ring-slate-200/50 p-6 md:p-8 mb-8">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <h2 className="text-xl font-bold">{isNew ? "New Contact" : formData.name}</h2>
         <div className="space-x-2">
           {!isNew && <Button variant="destructive" onClick={handleArchive}>Archive</Button>}

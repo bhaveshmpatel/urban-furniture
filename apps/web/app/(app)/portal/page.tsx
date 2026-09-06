@@ -59,7 +59,7 @@ export default function PortalPage() {
   };
 
   const renderList = () => (
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -115,12 +115,12 @@ export default function PortalPage() {
         const isBill = d.documentType === "VENDOR_BILL";
         const prefix = isBill ? "BILL" : "INV";
         return (
-          <div key={d.id} onClick={() => handleRowClick(d)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-2">
+          <div key={d.id} onClick={() => handleRowClick(d)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div className="flex justify-between items-start mb-4">
               <h3 className="font-bold">{prefix}-{d.id.slice(-8).toUpperCase()}</h3>
               <Badge variant="outline">{d.status}</Badge>
             </div>
-            <div className="text-sm text-gray-800 font-medium mb-1">{isBill ? "Vendor Bill" : "Customer Invoice"}</div>
+            <div className="text-sm font-semibold text-slate-700 line-clamp-1 mt-auto pt-2 border-t border-slate-100">{isBill ? "Vendor Bill" : "Customer Invoice"}</div>
             <div className="text-xs text-gray-500 mb-2">Due: {new Date(d.dueDate).toLocaleDateString()}</div>
             <div className="flex justify-between items-center text-sm">
               <span className="font-medium">Total: ₹{Number(d.totalAmount).toLocaleString()}</span>
@@ -141,8 +141,8 @@ export default function PortalPage() {
     const isBill = selectedDoc.documentType === "VENDOR_BILL";
     const prefix = isBill ? "BILL" : "INV";
     return (
-      <div className="bg-white rounded-md shadow-sm border p-6">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b">
+      <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/80 ring-1 ring-slate-200/50 p-6 md:p-8 mb-8">
+        <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
           <div>
             <h2 className="text-xl font-bold">{prefix}-{selectedDoc.id.slice(-8).toUpperCase()}</h2>
             <div className="text-sm text-gray-500 mt-1">{isBill ? "Vendor Bill" : "Customer Invoice"}</div>
@@ -259,7 +259,7 @@ function PaymentForm({ doc, onComplete }: any) {
       <div className="space-y-2">
         <Label>Amount to Pay</Label>
         <Input type="number" step="0.01" max={amountDue} value={amount} onChange={e => setAmount(e.target.value)} required />
-        <p className="text-xs text-gray-500">Maximum: ₹{amountDue.toLocaleString()}</p>
+        <p className="text-xs font-medium text-slate-400 mt-1 flex items-center">Maximum: ₹{amountDue.toLocaleString()}</p>
       </div>
       <div className="space-y-2">
         <Label>Payment Method</Label>

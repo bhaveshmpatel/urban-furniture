@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { Plus, Check, Undo, History } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function BudgetsPage() {
   const [view, setView] = useState<ViewType>("list");
@@ -98,10 +100,10 @@ export default function BudgetsPage() {
 
   const renderList = () => (
     <div>
-      <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex items-center justify-between mb-6 bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-white/60 shadow-sm ring-1 ring-black/5">
         <div className="flex space-x-4 items-center">
-          <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
-          <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <div className="text-sm font-semibold text-slate-600">Filter by Status:</div>
+          <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="ALL">All</option>
             <option value="DRAFT">Draft</option>
             <option value="CONFIRMED">Confirmed</option>
@@ -110,14 +112,14 @@ export default function BudgetsPage() {
           </select>
         </div>
         <div className="flex space-x-4 items-center">
-          <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
-          <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <div className="text-sm font-semibold text-slate-600">Sort by Date:</div>
+          <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
             <option value="NEWEST">Newest First</option>
             <option value="OLDEST">Oldest First</option>
           </select>
         </div>
       </div>
-      <div className="rounded-md border border-uf-border bg-white shadow-sm">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <Table>
           <TableHeader>
             <TableRow>
@@ -146,7 +148,7 @@ export default function BudgetsPage() {
                   <TableCell><Badge variant="outline">{b.status}</Badge></TableCell>
                   <TableCell>
                     {(b.status === "CONFIRMED" || b.status === "REVISED") ? (
-                      <MiniPieChart achieved={b.achievedAmount} balance={b.balance} />
+                      <MiniPieChart achieved={b.achievedAmount} balance={b.amountToAchieve} />
                     ) : "-"}
                   </TableCell>
                 </TableRow>
@@ -160,10 +162,10 @@ export default function BudgetsPage() {
 
   const renderKanban = () => (
     <div>
-      <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+      <div className="flex items-center justify-between mb-6 bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-white/60 shadow-sm ring-1 ring-black/5">
         <div className="flex space-x-4 items-center">
-          <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
-          <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <div className="text-sm font-semibold text-slate-600">Filter by Status:</div>
+          <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="ALL">All</option>
             <option value="DRAFT">Draft</option>
             <option value="CONFIRMED">Confirmed</option>
@@ -172,8 +174,8 @@ export default function BudgetsPage() {
           </select>
         </div>
         <div className="flex space-x-4 items-center">
-          <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
-          <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+          <div className="text-sm font-semibold text-slate-600">Sort by Date:</div>
+          <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
             <option value="NEWEST">Newest First</option>
             <option value="OLDEST">Oldest First</option>
           </select>
@@ -181,9 +183,9 @@ export default function BudgetsPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {filteredBudgets.map(b => (
-          <div key={b.id} onClick={() => handleRowClick(b)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-uf-green">{b.name}</h3>
+          <div key={b.id} onClick={() => handleRowClick(b)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-slate-800 text-lg">{b.name}</h3>
               <Badge variant="outline">{b.status}</Badge>
             </div>
             <div className="text-sm text-gray-500 mb-4">
@@ -192,7 +194,7 @@ export default function BudgetsPage() {
             {(b.status === "CONFIRMED" || b.status === "REVISED") && (
               <div className="flex justify-between items-center text-sm border-t pt-2">
                 <span className="text-gray-600">Committed: {Number(b.committedAmount).toLocaleString()}</span>
-                <MiniPieChart achieved={b.achievedAmount} balance={b.balance} />
+                <MiniPieChart achieved={b.achievedAmount} balance={b.amountToAchieve} />
               </div>
             )}
           </div>
@@ -285,8 +287,8 @@ function BudgetForm({ budget, onSave, analytics, contacts }: any) {
   const selectedAnalytic = analytics.find((a: any) => a.id === formData.analyticAccountId);
 
   return (
-    <div className="bg-white rounded-md shadow-sm border p-6">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+    <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/80 ring-1 ring-slate-200/50 p-6 md:p-8 mb-8">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <h2 className="text-xl font-bold">{isNew ? "New Budget" : formData.name}</h2>
         <div className="space-x-2">
           {status === "DRAFT" && !isNew && <Button variant="outline" onClick={() => handleAction("confirm")}>Confirm Budget</Button>}
@@ -373,7 +375,7 @@ function BudgetForm({ budget, onSave, analytics, contacts }: any) {
               <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="text-sm text-gray-500 font-medium">Remaining Balance</div>
                 <div className="text-2xl font-bold text-orange-500 mt-1">
-                  ₹{Number(budget.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  ₹{Number(budget.amountToAchieve || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -396,18 +398,27 @@ function BudgetForm({ budget, onSave, analytics, contacts }: any) {
                     <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">Loading details...</TableCell></TableRow>
                   ) : achievedDetails && achievedDetails.length > 0 ? (
                     achievedDetails.map((d: any) => {
-                      const date = (d.bill || d.invoice)?.invoiceDate;
-                      const status = (d.bill || d.invoice)?.status;
-                      const total = Number(d.quantity) * Number(d.unitPrice);
+                      // Support both raw format (income) and normalized format (expense)
+                      const date = d.date || (d.bill || d.invoice)?.invoiceDate;
+                      const status = d.status || (d.bill || d.invoice)?.status;
+                      const total = d.total !== undefined ? d.total : (Number(d.quantity) * Number(d.unitPrice));
+                      const productName = d.productName || d.product?.name || 'Unknown';
+                      const reference = d.reference || (d.bill ? `BILL-${d.bill.id.slice(-8).toUpperCase()}` : d.invoice ? `INV-${d.invoice.id.slice(-8).toUpperCase()}` : '');
+                      
                       return (
                         <TableRow key={d.id}>
                           <TableCell>{date ? new Date(date).toLocaleDateString() : 'N/A'}</TableCell>
-                          <TableCell className="font-medium">{d.product?.name || 'Unknown'}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex flex-col">
+                              <span>{productName}</span>
+                              <span className="text-xs text-slate-500">{reference}</span>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right">{Number(d.quantity)}</TableCell>
                           <TableCell className="text-right">₹{Number(d.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-right font-bold text-gray-900">₹{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-right">
-                            <Badge variant="outline" className="bg-gray-50">{status}</Badge>
+                            <Badge variant="outline" className={cn("px-2.5 py-0.5 font-medium text-xs border", status === "CONFIRMED" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-700 border-slate-200")}>{status}</Badge>
                           </TableCell>
                         </TableRow>
                       );

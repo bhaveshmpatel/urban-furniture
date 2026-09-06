@@ -75,7 +75,7 @@ export default function ProfitAndLossPage() {
       <div className="grid grid-cols-3 gap-6 mb-8 print:grid-cols-3 print:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Income</CardTitle>
+            <CardTitle className="text-sm font-semibold text-slate-600">Total Income</CardTitle>
             <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
@@ -86,7 +86,7 @@ export default function ProfitAndLossPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-semibold text-slate-600">Total Expenses</CardTitle>
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>

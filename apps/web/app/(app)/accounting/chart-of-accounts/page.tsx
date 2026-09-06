@@ -63,7 +63,7 @@ export default function ChartOfAccountsPage() {
   const filteredAccounts = accounts;
 
   const renderList = () => (
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -92,9 +92,9 @@ export default function ChartOfAccountsPage() {
   const renderKanban = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredAccounts.map(a => (
-        <div key={a.id} onClick={() => handleRowClick(a)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+        <div key={a.id} onClick={() => handleRowClick(a)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold text-uf-green">{a.name}</h3>
+            <h3 className="font-bold text-slate-800 text-lg">{a.name}</h3>
           </div>
           <Badge variant="outline">{a.type.replace('_', ' ')}</Badge>
         </div>
@@ -155,7 +155,7 @@ function AccountForm({ account, onSave }: any) {
 
   return (
     <div className="bg-white rounded-md shadow-sm border p-6 max-w-2xl">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <h2 className="text-xl font-bold">{isNew ? "New Account" : formData.name}</h2>
       </div>
 

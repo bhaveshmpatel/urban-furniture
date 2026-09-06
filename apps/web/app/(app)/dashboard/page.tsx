@@ -161,11 +161,11 @@ export default function DashboardPage() {
                   {[1,2,3].map(i => <div key={i} className="h-8 w-16 bg-gray-100 rounded animate-pulse" />)}
                 </div>
               ) : (
-                <div className="flex gap-6">
+                <div className="grid grid-cols-3 gap-2">
                   {card.tiles.map(tile => (
-                    <div key={tile.label}>
-                      <div className="text-xl font-bold text-gray-900">{tile.value}</div>
-                      <div className="text-xs text-gray-500">{tile.label}</div>
+                    <div key={tile.label} className="min-w-0">
+                      <div className="text-lg xl:text-xl font-bold text-gray-900 truncate" title={String(tile.value)}>{tile.value}</div>
+                      <div className="text-xs font-medium text-slate-400 mt-1 flex items-center truncate" title={String(tile.label)}>{tile.label}</div>
                     </div>
                   ))}
                 </div>

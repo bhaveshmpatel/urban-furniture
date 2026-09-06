@@ -69,7 +69,7 @@ export default function JournalsPage() {
   const filteredJournals = journals;
 
   const renderList = () => (
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -100,9 +100,9 @@ export default function JournalsPage() {
   const renderKanban = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredJournals.map(j => (
-        <div key={j.id} onClick={() => handleRowClick(j)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+        <div key={j.id} onClick={() => handleRowClick(j)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold text-uf-green">{j.name}</h3>
+            <h3 className="font-bold text-slate-800 text-lg">{j.name}</h3>
             <Badge variant="outline">{j.type}</Badge>
           </div>
           <div className="text-sm text-gray-500 mt-2">
@@ -166,7 +166,7 @@ function JournalForm({ journal, accounts, onSave }: any) {
 
   return (
     <div className="bg-white rounded-md shadow-sm border p-6 max-w-2xl">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <h2 className="text-xl font-bold">{isNew ? "New Journal" : formData.name}</h2>
       </div>
 

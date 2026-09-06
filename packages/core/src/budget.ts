@@ -33,7 +33,10 @@ export async function computeAchievedAmount(budgetId: string) {
       new Decimal(0)
     );
   } else {
-    const lines = await prisma.vendorBillLine.findMany({
+    // For EXPENSE budgets, we sum Vendor Bills AND unbilled Purchase Orders
+    
+    // 1. Sum of Vendor Bills
+    const billLines = await prisma.vendorBillLine.findMany({
       where: {
         analyticAccountId: analyticAccount.id,
         bill: {
@@ -43,10 +46,29 @@ export async function computeAchievedAmount(budgetId: string) {
       },
     });
 
-    return lines.reduce(
+    const billTotal = billLines.reduce(
       (sum, line) => sum.plus(new Decimal(line.quantity.toString()).times(new Decimal(line.unitPrice.toString()))),
       new Decimal(0)
     );
+    
+    // 2. Sum of unbilled Purchase Orders (Status != CANCELLED, and no linked bill)
+    const poLines = await prisma.purchaseOrderLine.findMany({
+      where: {
+        analyticAccountId: analyticAccount.id,
+        purchaseOrder: {
+          status: { not: 'CANCELLED' },
+          orderDate: { gte: periodStart, lte: periodEndAdjusted },
+          bill: null // Only count POs that don't have a Vendor Bill yet
+        },
+      },
+    });
+    
+    const poTotal = poLines.reduce(
+      (sum, line) => sum.plus(new Decimal(line.quantity.toString()).times(new Decimal(line.unitPrice.toString()))),
+      new Decimal(0)
+    );
+
+    return billTotal.plus(poTotal);
   }
 }
 
@@ -77,7 +99,8 @@ export async function getBudgetAchievedDetail(budgetId: string) {
       }
     });
   } else {
-    return await prisma.vendorBillLine.findMany({
+    // Return both Vendor Bills and unbilled Purchase Orders
+    const bills = await prisma.vendorBillLine.findMany({
       where: {
         analyticAccountId: analyticAccount.id,
         bill: {
@@ -90,6 +113,48 @@ export async function getBudgetAchievedDetail(budgetId: string) {
         product: true
       }
     });
+    
+    const pos = await prisma.purchaseOrderLine.findMany({
+      where: {
+        analyticAccountId: analyticAccount.id,
+        purchaseOrder: {
+          status: { not: 'CANCELLED' },
+          orderDate: { gte: periodStart, lte: periodEndAdjusted },
+          bill: null // Only unbilled POs
+        },
+      },
+      include: {
+        purchaseOrder: true,
+        product: true
+      }
+    });
+    
+    // Normalize them to a standard format for the UI
+    const normalizedBills = bills.map(b => ({
+      id: b.id,
+      date: b.bill.invoiceDate,
+      reference: `BILL-${b.bill.id.slice(-8).toUpperCase()}`,
+      status: b.bill.status,
+      productName: b.product.name,
+      quantity: b.quantity,
+      unitPrice: b.unitPrice,
+      total: Number(b.quantity) * Number(b.unitPrice),
+      type: 'BILL'
+    }));
+    
+    const normalizedPos = pos.map(p => ({
+      id: p.id,
+      date: p.purchaseOrder.orderDate,
+      reference: `PO-${p.purchaseOrder.orderNumber?.toString().padStart(5, '0') || p.purchaseOrder.id.slice(-8).toUpperCase()}`,
+      status: p.purchaseOrder.status,
+      productName: p.product.name,
+      quantity: p.quantity,
+      unitPrice: p.unitPrice,
+      total: Number(p.quantity) * Number(p.unitPrice),
+      type: 'PO'
+    }));
+    
+    return [...normalizedBills, ...normalizedPos].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 }
 

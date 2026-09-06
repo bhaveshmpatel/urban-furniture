@@ -99,10 +99,10 @@ export default function SalesOrdersPage() {
   const renderList = () => (
     <div>
 
-    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+    <div className="flex items-center justify-between mb-6 bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-white/60 shadow-sm ring-1 ring-black/5">
       <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <div className="text-sm font-semibold text-slate-600">Filter by Status:</div>
+        <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="ALL">All</option>
           <option value="DRAFT">Draft</option>
           <option value="CONFIRMED">Confirmed</option>
@@ -110,15 +110,15 @@ export default function SalesOrdersPage() {
         </select>
       </div>
       <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+        <div className="text-sm font-semibold text-slate-600">Sort by Date:</div>
+        <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
           <option value="NEWEST">Newest First</option>
           <option value="OLDEST">Oldest First</option>
         </select>
       </div>
     </div>
   
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -152,10 +152,10 @@ export default function SalesOrdersPage() {
   const renderKanban = () => (
     <div>
 
-    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+    <div className="flex items-center justify-between mb-6 bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-white/60 shadow-sm ring-1 ring-black/5">
       <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <div className="text-sm font-semibold text-slate-600">Filter by Status:</div>
+        <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="ALL">All</option>
           <option value="DRAFT">Draft</option>
           <option value="CONFIRMED">Confirmed</option>
@@ -163,8 +163,8 @@ export default function SalesOrdersPage() {
         </select>
       </div>
       <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+        <div className="text-sm font-semibold text-slate-600">Sort by Date:</div>
+        <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
           <option value="NEWEST">Newest First</option>
           <option value="OLDEST">Oldest First</option>
         </select>
@@ -173,13 +173,13 @@ export default function SalesOrdersPage() {
   
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredOrders.map(o => (
-        <div key={o.id} onClick={() => handleRowClick(o)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
+        <div key={o.id} onClick={() => handleRowClick(o)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+          <div className="flex justify-between items-start mb-4">
             <h3 className="font-bold">SO-{o.id.slice(-8).toUpperCase()}</h3>
             <Badge variant="outline">{o.status}</Badge>
           </div>
-          <div className="text-sm text-gray-800 font-medium mb-1">{o.customer?.name}</div>
-          <div className="text-xs text-gray-500">{new Date(o.orderDate).toLocaleDateString()}</div>
+          <div className="text-sm font-semibold text-slate-700 line-clamp-1 mt-auto pt-2 border-t border-slate-100">{o.customer?.name}</div>
+          <div className="text-xs font-medium text-slate-400 mt-1 flex items-center">{new Date(o.orderDate).toLocaleDateString()}</div>
         </div>
       ))}
     </div>
@@ -283,8 +283,8 @@ function SalesOrderForm({ order, customers, products, analytics, onSave }: any) 
   };
 
   return (
-    <div className="bg-white rounded-md shadow-sm border p-6">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+    <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/80 ring-1 ring-slate-200/50 p-6 md:p-8 mb-8">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <div>
           <h2 className="text-xl font-bold">{isNew ? "New Sales Order" : `SO-${order.orderNumber?.toString().padStart(5, "0")}`}</h2>
           {!isNew && order.invoice && (

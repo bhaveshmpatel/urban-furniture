@@ -15,7 +15,8 @@ export async function GET(req: Request) {
         revisedTo: true,
       },
       orderByField: 'createdAt',
-      filterField: 'status'
+      filterField: 'status',
+      searchFields: ['name', 'analyticAccount.name']
     });
 
     const isPaginated = req.url.includes("paginate=true");

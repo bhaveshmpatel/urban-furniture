@@ -4,8 +4,12 @@ import { withPagination } from "@repo/core";
 import bcrypt from "bcryptjs";
 
 export async function GET(req: Request) {
-  const result = await withPagination(req, prisma.user, { include: { contact: true }, searchFields: ['name', 'email'] });
-  return NextResponse.json(result);
+  try {
+    const result = await withPagination(req, prisma.user, { include: { contact: true }, searchFields: ['loginId', 'email'] });
+    return NextResponse.json(result);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {

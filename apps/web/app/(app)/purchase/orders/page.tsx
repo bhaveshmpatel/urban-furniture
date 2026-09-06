@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Printer } from "lucide-react";
 import { PrintDocument, PrintHeader, PrintMeta, PrintLinesTable, PrintFooter } from "@/components/print/PrintDocument";
+import { cn } from "@/lib/utils";
 
 export default function PurchaseOrdersPage() {
   const [view, setView] = useState<ViewType>("list");
@@ -98,10 +99,10 @@ export default function PurchaseOrdersPage() {
   const renderList = () => (
     <div>
 
-    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+    <div className="flex items-center justify-between mb-6 bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-white/60 shadow-sm ring-1 ring-black/5">
       <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <div className="text-sm font-semibold text-slate-600">Filter by Status:</div>
+        <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="ALL">All</option>
           <option value="DRAFT">Draft</option>
           <option value="CONFIRMED">Confirmed</option>
@@ -109,15 +110,15 @@ export default function PurchaseOrdersPage() {
         </select>
       </div>
       <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+        <div className="text-sm font-semibold text-slate-600">Sort by Date:</div>
+        <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
           <option value="NEWEST">Newest First</option>
           <option value="OLDEST">Oldest First</option>
         </select>
       </div>
     </div>
   
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -129,16 +130,25 @@ export default function PurchaseOrdersPage() {
         </TableHeader>
         <TableBody>
           {loading ? (
-            <TableRow><TableCell colSpan={4} className="text-center py-8">Loading...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={4} className="text-center py-16 text-slate-500">Loading purchase orders...</TableCell></TableRow>
           ) : filteredOrders.length === 0 ? (
-            <TableRow><TableCell colSpan={4} className="text-center py-8">No purchase orders found</TableCell></TableRow>
+            <TableRow><TableCell colSpan={4} className="text-center py-16 text-slate-500">No purchase orders found</TableCell></TableRow>
           ) : (
             filteredOrders.map(o => (
-              <TableRow key={o.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleRowClick(o)}>
-                <TableCell className="font-medium text-uf-green">PO-{o.orderNumber?.toString().padStart(5, '0')}</TableCell>
+              <TableRow key={o.id} className="cursor-pointer" onClick={() => handleRowClick(o)}>
+                <TableCell className="font-semibold text-uf-green">PO-{o.orderNumber?.toString().padStart(5, '0')}</TableCell>
                 <TableCell>{o.vendor?.name}</TableCell>
-                <TableCell>{new Date(o.orderDate).toLocaleDateString()}</TableCell>
-                <TableCell><Badge variant="outline">{o.status}</Badge></TableCell>
+                <TableCell className="text-slate-500">
+                  <div className="flex items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 mr-2"></span>
+                    {new Date(o.orderDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={cn("px-2.5 py-0.5 font-medium text-xs border", o.status === "CONFIRMED" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : o.status === "CANCELLED" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-700 border-slate-200")}>
+                    {o.status}
+                  </Badge>
+                </TableCell>
               </TableRow>
             ))
           )}
@@ -174,7 +184,7 @@ export default function PurchaseOrdersPage() {
           <div key={o.id} onClick={() => handleRowClick(o)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
             <div className="flex justify-between items-start mb-4">
               <h3 className="font-bold text-slate-800 text-lg">PO-{o.orderNumber?.toString().padStart(5, '0')}</h3>
-              <Badge variant="outline" className={cn("px-2.5 py-0.5 rounded-full font-medium text-xs border", o.status === "CONFIRMED" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : o.status === "CANCELLED" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-700 border-slate-200")}>
+              <Badge variant="outline" className={cn("px-2.5 py-0.5 font-medium text-xs border", o.status === "CONFIRMED" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : o.status === "CANCELLED" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-700 border-slate-200")}>
                 {o.status}
               </Badge>
             </div>
@@ -289,8 +299,8 @@ function PurchaseOrderForm({ order, vendors, products, activeBudgets, onSave }: 
   };
 
   return (
-    <div className="bg-white rounded-md shadow-sm border p-6">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+    <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/80 ring-1 ring-slate-200/50 p-6 md:p-8 mb-8">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <div>
           <h2 className="text-xl font-bold">{isNew ? "New Purchase Order" : `PO-${order.orderNumber?.toString().padStart(5, "0")}`}</h2>
           {!isNew && order.bill && (

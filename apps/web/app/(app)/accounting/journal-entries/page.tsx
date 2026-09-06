@@ -94,7 +94,7 @@ export default function JournalEntriesPage() {
   const filteredEntries = entries;
 
   const renderList = () => (
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Table>
         <TableHeader>
           <TableRow>
@@ -138,12 +138,12 @@ export default function JournalEntriesPage() {
       {filteredEntries.map(e => {
         const total = e.items?.reduce((acc: number, i: any) => acc + Number(i.debit), 0) || 0;
         return (
-          <div key={e.id} onClick={() => handleRowClick(e)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-2">
+          <div key={e.id} onClick={() => handleRowClick(e)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div className="flex justify-between items-start mb-4">
               <h3 className="font-bold">{e.reference || `JE-${e.id.slice(-8).toUpperCase()}`}</h3>
               <Badge variant={e.status === 'POSTED' ? 'default' : 'outline'}>{e.status}</Badge>
             </div>
-            <div className="text-sm text-gray-800 font-medium mb-1">{e.journal?.name}</div>
+            <div className="text-sm font-semibold text-slate-700 line-clamp-1 mt-auto pt-2 border-t border-slate-100">{e.journal?.name}</div>
             <div className="text-xs text-gray-500 mb-2">{new Date(e.date).toLocaleDateString()}</div>
             <div className="flex justify-between items-center text-sm border-t pt-2 mt-2">
               <div className="text-xs text-gray-400">{e.sourceType ? e.sourceType.replace('_', ' ') : 'MANUAL'}</div>
@@ -282,8 +282,8 @@ function JournalEntryForm({ entry, journals, accounts, contacts, analytics, onSa
   };
 
   return (
-    <div className="bg-white rounded-md shadow-sm border p-6">
-      <div className="flex justify-between items-center mb-6 pb-4 border-b">
+    <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/80 ring-1 ring-slate-200/50 p-6 md:p-8 mb-8">
+      <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-200/60">
         <div>
           <h2 className="text-xl font-bold">{isNew ? "New Journal Entry" : entry.reference || `JE-${entry.id.slice(-8).toUpperCase()}`}</h2>
           {!isNew && entry.sourceType && (
