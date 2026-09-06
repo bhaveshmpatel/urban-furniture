@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Printer } from "lucide-react";
+import { PrintDocument, PrintHeader, PrintMeta, PrintLinesTable, PrintFooter } from "@/components/print/PrintDocument";
 
 export default function CustomerInvoicesPage() {
   const [view, setView] = useState<ViewType>("list");
@@ -69,11 +70,11 @@ export default function CustomerInvoicesPage() {
   };
 
   const fetchDependencies = async () => {
-    const resC = await fetch("/api/contacts");
+    const resC = await fetch("/api/contacts?limit=1000");
     setCustomers((await resC.json()).filter((v: any) => v.type === "CUSTOMER" || v.type === "BOTH"));
-    const resP = await fetch("/api/products");
+    const resP = await fetch("/api/products?limit=1000");
     setProducts(await resP.json());
-    const resA = await fetch("/api/analytic-accounts");
+    const resA = await fetch("/api/analytic-accounts?limit=1000");
     setAnalytics((await resA.json()).filter((a: any) => a.type === "INCOME"));
   };
 
@@ -233,6 +234,7 @@ function CustomerInvoiceForm({ invoice, customers, products, analytics, onSave }
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(invoice?.totalAmount || 0);
   const [paymentMethod, setPaymentMethod] = useState("BANK");
+  const [showPrint, setShowPrint] = useState(false);
 
   const isNew = !invoice;
   const status = invoice?.status || "DRAFT";
@@ -351,9 +353,48 @@ function CustomerInvoiceForm({ invoice, customers, products, analytics, onSave }
               </DialogContent>
             </Dialog>
           )}
+          {!isNew && (
+            <Button variant="outline" size="sm" onClick={() => setShowPrint(true)}>
+              <Printer className="h-4 w-4 mr-1" /> Print
+            </Button>
+          )}
           <Badge variant="outline" className="ml-4 text-sm px-3 py-1 bg-gray-50">{status}</Badge>
         </div>
       </div>
+
+      {/* ── Print overlay ── */}
+      {showPrint && invoice && (() => {
+        const customer = customers.find((c: any) => c.id === invoice.customerId);
+        const linesTotal = (invoice.lines || []).reduce((s: number, l: any) => s + Number(l.quantity) * Number(l.unitPrice), 0);
+        const tax = Number(invoice.taxAmount || 0);
+        return (
+          <PrintDocument onClose={() => setShowPrint(false)}>
+            <div className="p-12 max-w-[210mm] mx-auto">
+              <PrintHeader
+                title="Tax Invoice"
+                docNumber={`INV/${invoice.id.slice(-8).toUpperCase()}`}
+                status={status}
+              />
+              <PrintMeta rows={[
+                { label: "Bill To", value: customer?.name || invoice.customerId },
+                { label: "Invoice Date", value: invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Due Date", value: invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Status", value: status },
+              ]} />
+              <PrintLinesTable
+                lines={(invoice.lines || []).map((l: any) => {
+                  const p = products.find((x: any) => x.id === l.productId);
+                  return { description: p?.name || l.productId, qty: Number(l.quantity), price: Number(l.unitPrice), subtotal: Number(l.quantity) * Number(l.unitPrice) };
+                })}
+                subtotal={linesTotal}
+                tax={tax}
+                total={linesTotal + tax}
+              />
+              <PrintFooter note="Please make payment by the due date. Thank you!" />
+            </div>
+          </PrintDocument>
+        );
+      })()}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-2 gap-6">

@@ -16,7 +16,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetch("/api/users").then(r => r.json()).then(d => { setData(d); setLoading(false); });
-    fetch("/api/contacts").then(r => r.json()).then(d => setContacts(d));
+    fetch("/api/contacts?limit=1000").then(r => r.json()).then(d => setContacts(d));
   }, []);
 
   const handleSave = async () => {
@@ -49,6 +49,17 @@ export default function UsersPage() {
           <Button onClick={() => { setForm({}); setView("form"); }}><Plus className="h-4 w-4 mr-2" /> New User</Button>
         )}
       </div>
+
+      {view === "list" && (
+        <div className="bg-blue-50 text-blue-900 border border-blue-200 p-4 rounded-md mb-6 text-sm">
+          <h3 className="font-semibold mb-2">Role Based Access Control (RBAC) Guide</h3>
+          <ul className="list-disc list-inside space-y-1">
+            <li><strong>Admin</strong>: Full access to all modules, including this User Management page.</li>
+            <li><strong>Accountant</strong>: Access to Dashboard, Accounting, Sales, Purchases, Contacts, and Reports. Cannot access User Management.</li>
+            <li><strong>Contact (Portal)</strong>: Restricted to the Customer/Vendor Portal only (invoices, orders, bills). Cannot access the main application modules.</li>
+          </ul>
+        </div>
+      )}
 
       {view === "list" ? (
         <div className="bg-white border rounded-md">

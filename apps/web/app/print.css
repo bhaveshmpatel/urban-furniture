@@ -1,0 +1,48 @@
+/* ============================================================
+   PRINT STYLES — Urban Furniture ERP
+   The "printing" class is added to <body> by PrintDocument.
+   This hides ALL body children except the #__print_root portal.
+   ============================================================ */
+
+@media print {
+  /* Force color printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* When printing, hide everything on body EXCEPT the print portal */
+  body.printing > *:not(#__print_root) {
+    display: none !important;
+  }
+
+  /* The print portal itself should be fully visible */
+  body.printing #__print_root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+  }
+
+  /* Fallback: even without .printing class, hide common app chrome */
+  nav,
+  aside,
+  [data-sidebar],
+  .print-hidden {
+    display: none !important;
+  }
+
+  /* Page setup — A4 with sensible margins */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 20mm;
+  }
+
+  /* Keep table rows together and repeat headers */
+  table { border-collapse: collapse; width: 100%; }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* No link underlines */
+  a { color: inherit !important; text-decoration: none !important; }
+}

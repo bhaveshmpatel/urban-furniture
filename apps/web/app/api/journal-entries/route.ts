@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@repo/db";
 import { withPagination } from "@repo/core";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const data = await prisma.journalEntry.findMany({ 
-      include: { journal: true, items: { include: { account: true, contact: true } } }, 
-      orderBy: { date: 'desc' } 
+    const result = await withPagination(req, prisma.journalEntry, {
+      searchFields: ['reference'],
+      filterField: 'status',
+      orderByField: 'date',
+      include: { journal: true, items: { include: { account: true, contact: true } } }
     });
-    return NextResponse.json(data);
+    return NextResponse.json(result);
   } catch (e: any) {
     return NextResponse.json({ error: e.message, stack: e.stack }, { status: 500 });
   }

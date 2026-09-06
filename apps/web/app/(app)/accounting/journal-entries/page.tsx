@@ -26,6 +26,7 @@ export default function JournalEntriesPage() {
   const [analytics, setAnalytics] = useState<any[]>([]);
 
   useEffect(() => {
+    fetchDependencies();
     const delay = setTimeout(() => fetchData(), 300);
     return () => clearTimeout(delay);
   }, [page, searchQuery, statusFilter, sortOrder]);
@@ -64,13 +65,13 @@ export default function JournalEntriesPage() {
   };
 
   const fetchDependencies = async () => {
-    const resJ = await fetch("/api/journals");
+    const resJ = await fetch("/api/journals?limit=1000");
     setJournals(await resJ.json());
-    const resA = await fetch("/api/accounts");
+    const resA = await fetch("/api/accounts?limit=1000");
     setAccounts(await resA.json());
-    const resC = await fetch("/api/contacts");
+    const resC = await fetch("/api/contacts?limit=1000");
     setContacts(await resC.json());
-    const resAn = await fetch("/api/analytic-accounts");
+    const resAn = await fetch("/api/analytic-accounts?limit=1000");
     setAnalytics(await resAn.json());
   };
 

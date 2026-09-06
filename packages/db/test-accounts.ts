@@ -1,6 +1,6 @@
-import { prisma } from "./index";
+import { prisma } from './src/index';
 async function main() {
-  const c = await prisma.account.count();
-  console.log("Account count:", c);
+  const account = await prisma.account.findUnique({ where: { code: '5000' } });
+  console.log("Account 5000:", account);
 }
-main();
+main().finally(() => prisma.$disconnect());

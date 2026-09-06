@@ -5,12 +5,12 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test';
 // ---------------------------------------------------------------------------
 
 // We mock the entire module so `prisma` is our controlled object.
-const mockFindMany    = mock(() => Promise.resolve([]));
+const mockFindMany    = mock((args?: any): Promise<any[]> => Promise.resolve([]));
 const mockTransaction = mock(async (cb: (tx: unknown) => Promise<unknown>) =>
   cb(mockTx),
 );
 
-const mockCreate = mock(() =>
+const mockCreate = mock((args?: any): Promise<any> =>
   Promise.resolve({
     id: 'je-test-001',
     journalId: 'journal-001',
@@ -79,12 +79,12 @@ describe('postJournalEntry', () => {
     mockCreate.mockReset();
 
     // Restore default happy-path behaviour
-    mockFindMany.mockImplementation((args: { where: { id: { in: string[] } } }) => {
+    mockFindMany.mockImplementation((args?: any) => {
       const ids: string[] = args?.where?.id?.in ?? [];
       return Promise.resolve(MOCK_ACCOUNTS.filter((a) => ids.includes(a.id)));
     });
 
-    mockCreate.mockImplementation(() =>
+    mockCreate.mockImplementation((args?: any) =>
       Promise.resolve({
         id: 'je-test-001',
         journalId: 'journal-001',
@@ -101,7 +101,7 @@ describe('postJournalEntry', () => {
             debit: '500.00',
             credit: '0.00',
             analyticAccountId: null,
-            account: MOCK_ACCOUNTS[0],
+            account: MOCK_ACCOUNTS[0]!,
           },
           {
             id: 'ji-002',
@@ -110,7 +110,7 @@ describe('postJournalEntry', () => {
             debit: '0.00',
             credit: '500.00',
             analyticAccountId: null,
-            account: MOCK_ACCOUNTS[1],
+            account: MOCK_ACCOUNTS[1]!,
           },
         ],
       }),
@@ -144,9 +144,7 @@ describe('postJournalEntry', () => {
 
     // journalEntry.create was called with correct shape
     expect(mockCreate).toHaveBeenCalledTimes(1);
-    const createArg = mockCreate.mock.calls[0]![0] as {
-      data: { journalId: string; items: { create: unknown[] } };
-    };
+    const createArg = mockCreate.mock.calls[0]![0] as any;
     expect(createArg.data.journalId).toBe('journal-001');
     expect(createArg.data.items.create).toHaveLength(2);
   });

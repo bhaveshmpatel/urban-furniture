@@ -32,16 +32,21 @@ export default function JournalsPage() {
   const fetchData = async () => {
     setLoading(true);
     const params = new URLSearchParams({
-      paginate: "true",
       page: page.toString(),
       limit: "10",
       search: searchQuery,
-      sortOrder: sortOrder,
-      statusFilter: statusFilter
+      sort: sortOrder,
     });
-    const res = await fetch(`/api/journals?${params.toString()}`);
+    if (statusFilter !== "ALL") params.append("status", statusFilter);
+
+    const [res, accRes] = await Promise.all([
+      fetch(`/api/journals?${params.toString()}`),
+      fetch("/api/accounts?limit=1000")
+    ]);
     const json = await res.json();
-    setJournals(json.data || []);
+    const accJson = await accRes.json();
+    setJournals(json.data || json);
+    setAccounts(accJson.data || accJson);
     setTotalPages(json.metadata?.totalPages || 1);
     setLoading(false);
   };

@@ -35,9 +35,9 @@ async function main() {
   console.log("Starting large data seed with last 6 months history...");
   
   // 1. 200 Contacts
-  console.log("Seeding 200 Contacts...");
+  console.log("Seeding 100 Contacts...");
   const contacts = [];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 100; i++) {
     const isComp = Math.random() > 0.5;
     const name = isComp ? `${randomEl(prefixes)} ${randomEl(companies)}` : `${randomEl(names)} ${randomEl(surnames)}`;
     const type = randomEl(["CUSTOMER", "VENDOR", "BOTH"]);
@@ -54,9 +54,9 @@ async function main() {
   const customers = allContacts.filter(c => c.type === "CUSTOMER" || c.type === "BOTH");
 
   // 2. 200 Products
-  console.log("Seeding 200 Products...");
+  console.log("Seeding 100 Products...");
   const products = [];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 100; i++) {
     products.push({
       name: `${randomEl(prefixes)} ${randomEl(furniture)} ${i}`,
       type: randomEl(["GOODS", "SERVICE"]),
@@ -68,10 +68,29 @@ async function main() {
   const allProducts = await prisma.product.findMany();
 
   // 3. 200 Accounts
-  console.log("Seeding 200 Accounts...");
+  console.log("Seeding 100 Accounts...");
   const accounts = [];
+  
+  // Required core accounts
+  const requiredAccounts = [
+    { name: "Cash", type: "ASSET", code: "1000" },
+    { name: "Bank", type: "ASSET", code: "1010" },
+    { name: "Accounts Receivable (Debtors)", type: "ASSET", code: "1100" },
+    { name: "Inventory", type: "ASSET", code: "1200" },
+    { name: "Accounts Payable (Creditors)", type: "LIABILITY", code: "2000" },
+    { name: "Tax Payable", type: "LIABILITY", code: "2100" },
+    { name: "Owner Equity", type: "EQUITY", code: "3000" },
+    { name: "Retained Earnings", type: "EQUITY", code: "3100" },
+    { name: "Sales Income", type: "INCOME", code: "4000" },
+    { name: "Purchase Expense", type: "EXPENSE", code: "5000" },
+    { name: "Operating Expenses", type: "EXPENSE", code: "5100" }
+  ];
+  for (const acc of requiredAccounts) {
+    accounts.push(acc);
+  }
+
   const accountTypes = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 100; i++) {
     accounts.push({
       code: `ACC-${Date.now() + i}`,
       name: `Account ${i}`,
@@ -84,9 +103,9 @@ async function main() {
   const creditAccs = allAccounts.filter(a => a.type === "LIABILITY" || a.type === "EQUITY" || a.type === "INCOME");
 
   // 4. 200 Analytic Accounts
-  console.log("Seeding 200 Analytic Accounts...");
+  console.log("Seeding 100 Analytic Accounts...");
   const analyticAccounts = [];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 100; i++) {
     analyticAccounts.push({
       name: `Project ${i}`,
       type: randomEl(["INCOME", "EXPENSE"]) as any,
@@ -111,9 +130,9 @@ async function main() {
   const allJournals = await prisma.journal.findMany();
 
   // 6. 200 Budgets
-  console.log("Seeding 200 Budgets...");
+  console.log("Seeding 100 Budgets...");
   const budgets = [];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 100; i++) {
     const pStart = new Date(now.getFullYear(), now.getMonth() - (i % 6), 1);
     const pEnd = new Date(now.getFullYear(), now.getMonth() - (i % 6) + 1, 0);
     budgets.push({
@@ -132,8 +151,8 @@ async function main() {
   const statuses = ["DRAFT", "CONFIRMED", "CANCELLED"];
 
   // 7. 200 Purchase Orders & Lines
-  console.log("Seeding 200 Purchase Orders...");
-  for (let i = 0; i < 200; i++) {
+  console.log("Seeding 100 Purchase Orders...");
+  for (let i = 0; i < 100; i++) {
     const po = await prisma.purchaseOrder.create({
       data: {
         vendorId: randomEl(vendors).id,
@@ -155,8 +174,8 @@ async function main() {
   }
 
   // 8. 200 Sales Orders & Lines
-  console.log("Seeding 200 Sales Orders...");
-  for (let i = 0; i < 200; i++) {
+  console.log("Seeding 100 Sales Orders...");
+  for (let i = 0; i < 100; i++) {
     const so = await prisma.salesOrder.create({
       data: {
         customerId: randomEl(customers).id,
@@ -178,9 +197,9 @@ async function main() {
   }
 
   // 9. 200 Vendor Bills & Lines
-  console.log("Seeding 200 Vendor Bills...");
+  console.log("Seeding 100 Vendor Bills...");
   const vendorBills = [];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 100; i++) {
     const invDate = getRandomDate();
     const dueDate = addDays(invDate, randomEl([15, 30, 45, 60]));
     const bill = await prisma.vendorBill.create({
@@ -212,9 +231,9 @@ async function main() {
   }
 
   // 10. 200 Customer Invoices & Lines
-  console.log("Seeding 200 Customer Invoices...");
+  console.log("Seeding 100 Customer Invoices...");
   const customerInvoices = [];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 100; i++) {
     const invDate = getRandomDate();
     const dueDate = addDays(invDate, randomEl([15, 30, 45, 60]));
     const inv = await prisma.customerInvoice.create({
@@ -246,8 +265,8 @@ async function main() {
   }
 
   // 11. 200 Journal Entries & Items
-  console.log("Seeding 200 Journal Entries...");
-  for (let i = 0; i < 200; i++) {
+  console.log("Seeding 100 Journal Entries...");
+  for (let i = 0; i < 100; i++) {
     const je = await prisma.journalEntry.create({
       data: {
         journalId: randomEl(allJournals).id,
@@ -279,8 +298,8 @@ async function main() {
   }
 
   // 12. 200 Payments
-  console.log("Seeding 200 Payments...");
-  for (let i = 0; i < 200; i++) {
+  console.log("Seeding 100 Payments...");
+  for (let i = 0; i < 100; i++) {
     const isOut = Math.random() > 0.5;
     await prisma.payment.create({
       data: {

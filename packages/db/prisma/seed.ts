@@ -1,7 +1,6 @@
-import { PrismaClient, Role, ContactType, ProductType, AccountType, JournalType } from "@prisma/client";
+import { Role, ContactType, ProductType, AccountType, JournalType } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import { prisma } from "../src/index";
 
 async function main() {
   console.log("🌱 Seeding database...");
@@ -219,12 +218,11 @@ async function main() {
     create: {
       id: "budget-q4-2026",
       name: "Q4 2026 Sales Target",
-      period: "2026-Q4",
       periodStart: new Date("2026-10-01"),
       periodEnd: new Date("2026-12-31"),
-      plannedAmount: 500000,
+      committedAmount: 500000,
       analyticAccountId: analyticAccounts[0]!.id,
-      responsibleUserId: accountant.id,
+      responsibleContactId: customerContact.id,
     },
   });
 

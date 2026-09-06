@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Printer } from "lucide-react";
+import { PrintDocument, PrintHeader, PrintMeta, PrintLinesTable, PrintFooter } from "@/components/print/PrintDocument";
 
 export default function VendorBillsPage() {
   const [view, setView] = useState<ViewType>("list");
@@ -68,12 +69,13 @@ export default function VendorBillsPage() {
   };
 
   const fetchDependencies = async () => {
-    const resV = await fetch("/api/contacts");
+    const resV = await fetch("/api/contacts?limit=1000");
     setVendors((await resV.json()).filter((v: any) => v.type === "VENDOR" || v.type === "BOTH"));
-    const resP = await fetch("/api/products");
+    const resP = await fetch("/api/products?limit=1000");
     setProducts(await resP.json());
     const resB = await fetch("/api/reports/budget?status=CONFIRMED");
-    setActiveBudgets(await resB.json());
+    const jsonB = await resB.json();
+    setActiveBudgets(jsonB.budgets || jsonB || []);
   };
 
   const handleRowClick = async (b: any) => {
@@ -232,7 +234,7 @@ function VendorBillForm({ bill, vendors, products, activeBudgets, onSave }: any)
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(bill?.totalAmount || 0);
   const [paymentMethod, setPaymentMethod] = useState("BANK");
-
+  const [showPrint, setShowPrint] = useState(false);
   const isNew = !bill;
   const status = bill?.status || "DRAFT";
 
@@ -270,17 +272,25 @@ function VendorBillForm({ bill, vendors, products, activeBudgets, onSave }: any)
     setIsSubmitting(true);
     const payload = { ...formData, totalAmount };
     try {
+      let res;
       if (isNew) {
-        await fetch("/api/vendor-bills", {
+        res = await fetch("/api/vendor-bills", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
       } else {
-        await fetch(`/api/vendor-bills/${bill.id}`, {
+        res = await fetch(`/api/vendor-bills/${bill.id}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
       }
+      
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Failed to save Vendor Bill:\n\n${data.error || "Unknown error occurred"}`);
+        return;
+      }
+
       onSave();
     } finally {
       setIsSubmitting(false);
@@ -350,9 +360,49 @@ function VendorBillForm({ bill, vendors, products, activeBudgets, onSave }: any)
               </DialogContent>
             </Dialog>
           )}
+          {!isNew && (
+            <Button variant="outline" size="sm" onClick={() => setShowPrint(true)}>
+              <Printer className="h-4 w-4 mr-1" /> Print
+            </Button>
+          )}
           <Badge variant="outline" className="ml-4 text-sm px-3 py-1 bg-gray-50">{status}</Badge>
         </div>
       </div>
+
+
+      {/* ── Print overlay ── */}
+      {showPrint && bill && (() => {
+        const party = vendors.find((c: any) => c.id === bill.vendorId);
+        const linesTotal = (bill.lines || []).reduce((s: number, l: any) => s + Number(l.quantity) * Number(l.unitPrice), 0);
+        const tax = Number(bill.taxAmount || 0);
+        return (
+          <PrintDocument onClose={() => setShowPrint(false)}>
+            <div className="p-12 max-w-[210mm] mx-auto">
+              <PrintHeader
+                title="Vendor Bill"
+                docNumber={`BILL/${bill.id.slice(-8).toUpperCase()}`}
+                status={status}
+              />
+              <PrintMeta rows={[
+                { label: "Party", value: party?.name || bill.vendorId },
+                { label: "Date", value: bill.invoiceDate ? new Date(bill.invoiceDate).toLocaleDateString("en-IN") : bill.orderDate ? new Date(bill.orderDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Due Date", value: bill.dueDate ? new Date(bill.dueDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Status", value: status },
+              ]} />
+              <PrintLinesTable
+                lines={(bill.lines || []).map((l: any) => {
+                  const p = products.find((x: any) => x.id === l.productId);
+                  return { description: p?.name || l.productId, qty: Number(l.quantity), price: Number(l.unitPrice), subtotal: Number(l.quantity) * Number(l.unitPrice) };
+                })}
+                subtotal={linesTotal}
+                tax={tax}
+                total={linesTotal + tax}
+              />
+              <PrintFooter note="This is an official vendor bill. Please retain for your records." />
+            </div>
+          </PrintDocument>
+        );
+      })()}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-2 gap-6">
@@ -393,7 +443,7 @@ function VendorBillForm({ bill, vendors, products, activeBudgets, onSave }: any)
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Budget</TableHead>
+                  <TableHead>Budget / Cost Center</TableHead>
                   <TableHead className="w-24">Quantity</TableHead>
                   <TableHead className="w-32">Unit Price</TableHead>
                   <TableHead className="w-32 text-right">Subtotal</TableHead>
@@ -413,10 +463,23 @@ function VendorBillForm({ bill, vendors, products, activeBudgets, onSave }: any)
                     </TableCell>
                     <TableCell>
                       <Select required value={line.analyticAccountId || ""} onValueChange={v => handleLineChange(idx, "analyticAccountId", v)} disabled={!isNew && status !== "DRAFT"}>
-                        <SelectTrigger><SelectValue placeholder="Select Budget" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select Cost Center" /></SelectTrigger>
                         <SelectContent>
-                          {activeBudgets.map((b: any) => (
-                            <SelectItem key={b.id} value={b.analyticAccountId}>
+                          {Object.values(
+                            activeBudgets.reduce((acc: any, b: any) => {
+                              if (!acc[b.analyticAccountId]) {
+                                acc[b.analyticAccountId] = {
+                                  id: b.analyticAccountId,
+                                  name: b.analyticAccount?.name ? `${b.analyticAccount.name} [${b.name}]` : b.name,
+                                  balance: Number(b.balance) || 0
+                                };
+                              } else {
+                                acc[b.analyticAccountId].balance += (Number(b.balance) || 0);
+                              }
+                              return acc;
+                            }, {})
+                          ).map((b: any) => (
+                            <SelectItem key={b.id} value={b.id}>
                               {b.name} (₹{Number(b.balance).toLocaleString()} rem.)
                             </SelectItem>
                           ))}

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Printer } from "lucide-react";
+import { PrintDocument, PrintHeader, PrintMeta, PrintLinesTable, PrintFooter } from "@/components/print/PrintDocument";
 
 export default function PurchaseOrdersPage() {
   const [view, setView] = useState<ViewType>("list");
@@ -67,12 +68,13 @@ export default function PurchaseOrdersPage() {
   };
 
   const fetchDependencies = async () => {
-    const resV = await fetch("/api/contacts");
+    const resV = await fetch("/api/contacts?limit=1000");
     setVendors((await resV.json()).filter((v: any) => v.type === "VENDOR" || v.type === "BOTH"));
-    const resP = await fetch("/api/products");
+    const resP = await fetch("/api/products?limit=1000");
     setProducts(await resP.json());
     const resB = await fetch("/api/reports/budget?status=CONFIRMED");
-    setActiveBudgets(await resB.json());
+    const jsonB = await resB.json();
+    setActiveBudgets(jsonB.budgets || jsonB || []);
   };
 
   const handleRowClick = async (o: any) => {
@@ -148,38 +150,44 @@ export default function PurchaseOrdersPage() {
 
   const renderKanban = () => (
     <div>
-
-    <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
-      <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-          <option value="ALL">All</option>
-          <option value="DRAFT">Draft</option>
-          <option value="CONFIRMED">Confirmed</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
-      </div>
-      <div className="flex space-x-4 items-center">
-        <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
-        <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
-          <option value="NEWEST">Newest First</option>
-          <option value="OLDEST">Oldest First</option>
-        </select>
-      </div>
-    </div>
-  
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {filteredOrders.map(o => (
-        <div key={o.id} onClick={() => handleRowClick(o)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-uf-green">PO-{o.orderNumber?.toString().padStart(5, '0')}</h3>
-            <Badge variant="outline">{o.status}</Badge>
-          </div>
-          <div className="text-sm text-gray-800 font-medium mb-1">{o.vendor?.name}</div>
-          <div className="text-xs text-gray-500">{new Date(o.orderDate).toLocaleDateString()}</div>
+      <div className="flex items-center justify-between mb-6 bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-white/60 shadow-sm ring-1 ring-black/5">
+        <div className="flex space-x-4 items-center">
+          <div className="text-sm font-semibold text-slate-600">Filter by Status:</div>
+          <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="ALL">All</option>
+            <option value="DRAFT">Draft</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
         </div>
-      ))}
-    </div>
+        <div className="flex space-x-4 items-center">
+          <div className="text-sm font-semibold text-slate-600">Sort by Date:</div>
+          <select className="border-slate-200/60 bg-white/80 rounded-xl px-3 py-1.5 text-sm focus:ring-uf-green/30" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+            <option value="NEWEST">Newest First</option>
+            <option value="OLDEST">Oldest First</option>
+          </select>
+        </div>
+      </div>
+  
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredOrders.map(o => (
+          <div key={o.id} onClick={() => handleRowClick(o)} className="group bg-white/80 backdrop-blur-sm border border-white ring-1 ring-slate-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-slate-800 text-lg">PO-{o.orderNumber?.toString().padStart(5, '0')}</h3>
+              <Badge variant="outline" className={cn("px-2.5 py-0.5 rounded-full font-medium text-xs border", o.status === "CONFIRMED" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : o.status === "CANCELLED" ? "bg-red-50 text-red-700 border-red-200" : "bg-slate-50 text-slate-700 border-slate-200")}>
+                {o.status}
+              </Badge>
+            </div>
+            <div className="space-y-1 mt-auto pt-2 border-t border-slate-100">
+              <div className="text-sm font-semibold text-slate-700 line-clamp-1">{o.vendor?.name}</div>
+              <div className="text-xs font-medium text-slate-400 flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 mr-2"></span>
+                {new Date(o.orderDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -208,7 +216,7 @@ function PurchaseOrderForm({ order, vendors, products, activeBudgets, onSave }: 
     vendorId: "", orderDate: new Date().toISOString().split('T')[0], lines: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [showPrint, setShowPrint] = useState(false);
   const isNew = !order;
   const status = order?.status || "DRAFT";
 
@@ -247,17 +255,25 @@ function PurchaseOrderForm({ order, vendors, products, activeBudgets, onSave }: 
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      let res;
       if (isNew) {
-        await fetch("/api/purchase-orders", {
+        res = await fetch("/api/purchase-orders", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData)
         });
       } else {
-        await fetch(`/api/purchase-orders/${order.id}`, {
+        res = await fetch(`/api/purchase-orders/${order.id}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData)
         });
       }
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Failed to save Purchase Order:\n\n${data.error || "Unknown error occurred"}`);
+        return;
+      }
+      
       onSave();
     } finally {
       setIsSubmitting(false);
@@ -286,9 +302,49 @@ function PurchaseOrderForm({ order, vendors, products, activeBudgets, onSave }: 
         <div className="space-x-2">
           {status === "DRAFT" && !isNew && <Button variant="outline" onClick={() => handleAction("confirm")}>Confirm PO</Button>}
           {status === "CONFIRMED" && !order.bill && <Button variant="outline" onClick={() => handleAction("create-bill")}>Create Bill</Button>}
+          {!isNew && (
+            <Button variant="outline" size="sm" onClick={() => setShowPrint(true)}>
+              <Printer className="h-4 w-4 mr-1" /> Print
+            </Button>
+          )}
           <Badge variant="outline" className="ml-4 text-sm px-3 py-1 bg-gray-50">{status}</Badge>
         </div>
       </div>
+
+
+      {/* ── Print overlay ── */}
+      {showPrint && order && (() => {
+        const party = vendors.find((c: any) => c.id === order.vendorId);
+        const linesTotal = (order.lines || []).reduce((s: number, l: any) => s + Number(l.quantity) * Number(l.unitPrice), 0);
+        const tax = Number(order.taxAmount || 0);
+        return (
+          <PrintDocument onClose={() => setShowPrint(false)}>
+            <div className="p-12 max-w-[210mm] mx-auto">
+              <PrintHeader
+                title="Purchase Order"
+                docNumber={`PO/${order.id.slice(-8).toUpperCase()}`}
+                status={status}
+              />
+              <PrintMeta rows={[
+                { label: "Party", value: party?.name || order.vendorId },
+                { label: "Date", value: order.invoiceDate ? new Date(order.invoiceDate).toLocaleDateString("en-IN") : order.orderDate ? new Date(order.orderDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Due Date", value: order.dueDate ? new Date(order.dueDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Status", value: status },
+              ]} />
+              <PrintLinesTable
+                lines={(order.lines || []).map((l: any) => {
+                  const p = products.find((x: any) => x.id === l.productId);
+                  return { description: p?.name || l.productId, qty: Number(l.quantity), price: Number(l.unitPrice), subtotal: Number(l.quantity) * Number(l.unitPrice) };
+                })}
+                subtotal={linesTotal}
+                tax={tax}
+                total={linesTotal + tax}
+              />
+              <PrintFooter note="Please confirm receipt of goods upon delivery." />
+            </div>
+          </PrintDocument>
+        );
+      })()}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-2 gap-6">
@@ -323,7 +379,7 @@ function PurchaseOrderForm({ order, vendors, products, activeBudgets, onSave }: 
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Budget</TableHead>
+                  <TableHead>Budget / Cost Center</TableHead>
                   <TableHead className="w-24">Quantity</TableHead>
                   <TableHead className="w-32">Unit Price</TableHead>
                   <TableHead className="w-32 text-right">Subtotal</TableHead>
@@ -343,10 +399,23 @@ function PurchaseOrderForm({ order, vendors, products, activeBudgets, onSave }: 
                     </TableCell>
                     <TableCell>
                       <Select required value={line.analyticAccountId || ""} onValueChange={v => handleLineChange(idx, "analyticAccountId", v)} disabled={!isNew && status !== "DRAFT"}>
-                        <SelectTrigger><SelectValue placeholder="Select Budget" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select Cost Center" /></SelectTrigger>
                         <SelectContent>
-                          {activeBudgets.map((b: any) => (
-                            <SelectItem key={b.id} value={b.analyticAccountId}>
+                          {Object.values(
+                            activeBudgets.reduce((acc: any, b: any) => {
+                              if (!acc[b.analyticAccountId]) {
+                                acc[b.analyticAccountId] = {
+                                  id: b.analyticAccountId,
+                                  name: b.analyticAccount?.name ? `${b.analyticAccount.name} [${b.name}]` : b.name,
+                                  balance: Number(b.balance) || 0
+                                };
+                              } else {
+                                acc[b.analyticAccountId].balance += (Number(b.balance) || 0);
+                              }
+                              return acc;
+                            }, {})
+                          ).map((b: any) => (
+                            <SelectItem key={b.id} value={b.id}>
                               {b.name} (₹{Number(b.balance).toLocaleString()} rem.)
                             </SelectItem>
                           ))}

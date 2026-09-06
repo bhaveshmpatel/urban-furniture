@@ -25,6 +25,7 @@ export default function BudgetsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
 
   useEffect(() => {
+    fetchFormDependencies();
     const delay = setTimeout(() => fetchData(), 300);
     return () => clearTimeout(delay);
   }, [page, searchQuery, statusFilter, sortOrder]);
@@ -51,10 +52,10 @@ export default function BudgetsPage() {
   };
 
   const fetchFormDependencies = async () => {
-    const resA = await fetch("/api/analytic-accounts");
+    const resA = await fetch("/api/analytic-accounts?limit=1000");
     const dataA = await resA.json();
     setAnalytics(dataA || []);
-    const resC = await fetch("/api/contacts");
+    const resC = await fetch("/api/contacts?limit=1000");
     const dataC = await resC.json();
     setContacts(dataC || []);
   };
@@ -96,61 +97,107 @@ export default function BudgetsPage() {
   };
 
   const renderList = () => (
-    <div className="rounded-md border border-uf-border bg-white shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Budget Name</TableHead>
-            <TableHead>Period Start</TableHead>
-            <TableHead>Period End</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Progress</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading ? (
-            <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
-          ) : filteredBudgets.length === 0 ? (
-            <TableRow><TableCell colSpan={5} className="text-center py-8">No budgets found</TableCell></TableRow>
-          ) : (
-            filteredBudgets.map(b => (
-              <TableRow key={b.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleRowClick(b)}>
-                <TableCell className="font-medium text-uf-green">{b.name}</TableCell>
-                <TableCell>{new Date(b.periodStart).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(b.periodEnd).toLocaleDateString()}</TableCell>
-                <TableCell><Badge variant="outline">{b.status}</Badge></TableCell>
-                <TableCell>
-                  {(b.status === "CONFIRMED" || b.status === "REVISED") ? (
-                    <MiniPieChart achieved={b.achievedAmount} balance={b.balance} />
-                  ) : "-"}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+    <div>
+      <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+        <div className="flex space-x-4 items-center">
+          <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+          <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="ALL">All</option>
+            <option value="DRAFT">Draft</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="REVISED">Revised</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+        <div className="flex space-x-4 items-center">
+          <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+          <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+            <option value="NEWEST">Newest First</option>
+            <option value="OLDEST">Oldest First</option>
+          </select>
+        </div>
+      </div>
+      <div className="rounded-md border border-uf-border bg-white shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Budget Name</TableHead>
+              <TableHead>Period Start</TableHead>
+              <TableHead>Period End</TableHead>
+              <TableHead className="text-right">Committed (₹)</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Progress</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
+            ) : filteredBudgets.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8">No budgets found</TableCell></TableRow>
+            ) : (
+              filteredBudgets.map(b => (
+                <TableRow key={b.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleRowClick(b)}>
+                  <TableCell className="font-medium text-uf-green">{b.name}</TableCell>
+                  <TableCell>{new Date(b.periodStart).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(b.periodEnd).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right font-medium text-gray-900">
+                    ₹{Number(b.committedAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </TableCell>
+                  <TableCell><Badge variant="outline">{b.status}</Badge></TableCell>
+                  <TableCell>
+                    {(b.status === "CONFIRMED" || b.status === "REVISED") ? (
+                      <MiniPieChart achieved={b.achievedAmount} balance={b.balance} />
+                    ) : "-"}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 
   const renderKanban = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {filteredBudgets.map(b => (
-        <div key={b.id} onClick={() => handleRowClick(b)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-uf-green">{b.name}</h3>
-            <Badge variant="outline">{b.status}</Badge>
-          </div>
-          <div className="text-sm text-gray-500 mb-4">
-            {new Date(b.periodStart).toLocaleDateString()} - {new Date(b.periodEnd).toLocaleDateString()}
-          </div>
-          {(b.status === "CONFIRMED" || b.status === "REVISED") && (
-            <div className="flex justify-between items-center text-sm border-t pt-2">
-              <span className="text-gray-600">Committed: {Number(b.committedAmount).toLocaleString()}</span>
-              <MiniPieChart achieved={b.achievedAmount} balance={b.balance} />
-            </div>
-          )}
+    <div>
+      <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-md border shadow-sm">
+        <div className="flex space-x-4 items-center">
+          <div className="text-sm font-medium text-gray-500">Filter by Status:</div>
+          <select className="border rounded px-2 py-1 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="ALL">All</option>
+            <option value="DRAFT">Draft</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="REVISED">Revised</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
         </div>
-      ))}
+        <div className="flex space-x-4 items-center">
+          <div className="text-sm font-medium text-gray-500">Sort by Date:</div>
+          <select className="border rounded px-2 py-1 text-sm" value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+            <option value="NEWEST">Newest First</option>
+            <option value="OLDEST">Oldest First</option>
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filteredBudgets.map(b => (
+          <div key={b.id} onClick={() => handleRowClick(b)} className="bg-white border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-bold text-uf-green">{b.name}</h3>
+              <Badge variant="outline">{b.status}</Badge>
+            </div>
+            <div className="text-sm text-gray-500 mb-4">
+              {new Date(b.periodStart).toLocaleDateString()} - {new Date(b.periodEnd).toLocaleDateString()}
+            </div>
+            {(b.status === "CONFIRMED" || b.status === "REVISED") && (
+              <div className="flex justify-between items-center text-sm border-t pt-2">
+                <span className="text-gray-600">Committed: {Number(b.committedAmount).toLocaleString()}</span>
+                <MiniPieChart achieved={b.achievedAmount} balance={b.balance} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -179,9 +226,27 @@ function BudgetForm({ budget, onSave, analytics, contacts }: any) {
     name: "", periodStart: "", periodEnd: "", committedAmount: "", analyticAccountId: "", responsibleContactId: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [achievedDetails, setAchievedDetails] = useState<any[] | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   const isNew = !budget;
   const status = budget?.status || "DRAFT";
+
+  useEffect(() => {
+    if (budget && (status === "CONFIRMED" || status === "REVISED")) {
+      setLoadingDetails(true);
+      fetch(`/api/budgets/${budget.id}/achieved-detail`)
+        .then(res => res.json())
+        .then(data => {
+          setAchievedDetails(data);
+          setLoadingDetails(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoadingDetails(false);
+        });
+    }
+  }, [budget, status]);
 
   const handleChange = (k: string, v: any) => setFormData((prev: any) => ({ ...prev, [k]: v }));
 
@@ -290,27 +355,68 @@ function BudgetForm({ budget, onSave, analytics, contacts }: any) {
         </div>
 
         {budget && (status === "CONFIRMED" || status === "REVISED") && (
-          <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-100">
-            <h3 className="font-bold text-lg mb-4 text-blue-900">Budget Progress</h3>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="bg-white p-4 rounded-md shadow-sm">
+          <div className="mt-8 p-6 bg-blue-50/50 rounded-xl border border-blue-100">
+            <h3 className="font-bold text-lg mb-4 text-blue-900">Budget Progress Summary</h3>
+            <div className="grid grid-cols-3 gap-6 mb-8">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="text-sm text-gray-500 font-medium">Achieved Amount</div>
-                <div className="text-2xl font-bold text-green-600 mt-1 cursor-pointer hover:underline" onClick={() => alert("Details list would open here")}>
-                  {Number(budget.achievedAmount || 0).toLocaleString()}
+                <div className="text-2xl font-bold text-emerald-600 mt-1">
+                  ₹{Number(budget.achievedAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
-              <div className="bg-white p-4 rounded-md shadow-sm">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="text-sm text-gray-500 font-medium">Achieved %</div>
                 <div className="text-2xl font-bold text-blue-600 mt-1">
                   {budget.committedAmount > 0 ? ((budget.achievedAmount / budget.committedAmount) * 100).toFixed(1) : 0}%
                 </div>
               </div>
-              <div className="bg-white p-4 rounded-md shadow-sm">
-                <div className="text-sm text-gray-500 font-medium">Amount to Achieve</div>
-                <div className="text-2xl font-bold text-orange-600 mt-1">
-                  {Number(budget.balance || 0).toLocaleString()}
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="text-sm text-gray-500 font-medium">Remaining Balance</div>
+                <div className="text-2xl font-bold text-orange-500 mt-1">
+                  ₹{Number(budget.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
+            </div>
+
+            <h3 className="font-bold text-lg mb-4 text-gray-900">Purchase / Income Details</h3>
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead>Date</TableHead>
+                    <TableHead>Product / Description</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right font-bold">Total</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingDetails ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">Loading details...</TableCell></TableRow>
+                  ) : achievedDetails && achievedDetails.length > 0 ? (
+                    achievedDetails.map((d: any) => {
+                      const date = (d.bill || d.invoice)?.invoiceDate;
+                      const status = (d.bill || d.invoice)?.status;
+                      const total = Number(d.quantity) * Number(d.unitPrice);
+                      return (
+                        <TableRow key={d.id}>
+                          <TableCell>{date ? new Date(date).toLocaleDateString() : 'N/A'}</TableCell>
+                          <TableCell className="font-medium">{d.product?.name || 'Unknown'}</TableCell>
+                          <TableCell className="text-right">{Number(d.quantity)}</TableCell>
+                          <TableCell className="text-right">₹{Number(d.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-bold text-gray-900">₹{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant="outline" className="bg-gray-50">{status}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">No records found for this budget period.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </div>
         )}

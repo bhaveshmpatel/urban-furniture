@@ -57,22 +57,37 @@ export function Sidebar() {
   const isUser = role === "CONTACT";
 
   // Filter NAV items based on role
-  const displayNav = isUser 
+  let displayNav = isUser 
     ? [{ label: "My Documents", icon: Receipt, href: "/portal" }] 
     : NAV;
 
+  if (role === "ACCOUNTANT") {
+    displayNav = displayNav.map(item => {
+      if (item.label === "Master Data" && item.children) {
+        return {
+          ...item,
+          children: item.children.filter(c => c.label !== "Users")
+        };
+      }
+      return item;
+    });
+  }
+
   return (
-    <aside className="w-64 flex-shrink-0 bg-uf-surface border-r border-uf-border h-screen overflow-y-auto flex flex-col">
-      <div className="h-16 flex items-center px-6 border-b border-uf-border">
-        <span className="font-serif font-bold text-uf-green text-xl tracking-tight">Urban Furniture</span>
+    <aside className="w-64 flex-shrink-0 bg-white/40 backdrop-blur-xl border-r border-white/40 h-screen overflow-y-auto flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative z-10">
+      <div className="h-16 flex items-center px-6 border-b border-white/30">
+        <div className="w-8 h-8 bg-gradient-to-tr from-uf-green to-teal-400 rounded-xl mr-3 shadow-sm flex items-center justify-center">
+          <span className="text-white font-bold font-serif">U</span>
+        </div>
+        <span className="font-serif font-bold text-slate-800 text-xl tracking-tight">Urban<span className="text-uf-green">Furniture</span></span>
       </div>
-      <nav className="flex-1 py-4 px-3 space-y-1">
+      <nav className="flex-1 py-6 px-4 space-y-1.5">
         {displayNav.map((item) => {
           if (!item.children) {
             const active = pathname === item.href;
             return (
-              <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors", active ? "bg-uf-green text-white font-medium shadow-sm" : "text-uf-ink hover:bg-uf-green-light hover:text-uf-green")}>
-                <item.icon size={18} />
+              <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200", active ? "bg-white/80 text-uf-green font-semibold shadow-sm ring-1 ring-black/5" : "text-slate-600 hover:bg-white/60 hover:text-uf-green")}>
+                <item.icon size={18} className={active ? "text-uf-green" : "text-slate-400"} />
                 {item.label}
               </Link>
             );
@@ -80,18 +95,19 @@ export function Sidebar() {
           const isExpanded = expanded === item.label;
           const anyChildActive = item.children.some(c => pathname.startsWith(c.href));
           return (
-            <div key={item.label} className="mb-1">
-              <button onClick={() => toggle(item.label)} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors", anyChildActive && !isExpanded ? "text-uf-green font-medium" : "text-uf-ink hover:bg-uf-green-light hover:text-uf-green")}>
-                <item.icon size={18} />
+            <div key={item.label} className="mb-2">
+              <button onClick={() => toggle(item.label)} className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200", anyChildActive && !isExpanded ? "text-uf-green font-semibold" : "text-slate-600 hover:bg-white/60 hover:text-uf-green")}>
+                <item.icon size={18} className={anyChildActive ? "text-uf-green" : "text-slate-400"} />
                 <span className="flex-1 text-left font-medium">{item.label}</span>
-                <ChevronDown size={16} className={cn("transition-transform opacity-50", isExpanded && "rotate-180")} />
+                <ChevronDown size={16} className={cn("transition-transform duration-300 opacity-50", isExpanded && "rotate-180")} />
               </button>
               {isExpanded && (
-                <div className="ml-9 mt-1 space-y-1">
+                <div className="ml-4 pl-4 mt-1 space-y-1 border-l border-slate-200/50">
                   {item.children.map((child) => {
                     const active = pathname.startsWith(child.href);
                     return (
-                      <Link key={child.href} href={child.href} className={cn("block px-3 py-1.5 rounded-md text-sm transition-colors", active ? "bg-uf-green text-white font-medium shadow-sm" : "text-uf-muted hover:bg-uf-green-light hover:text-uf-green")}>
+                      <Link key={child.href} href={child.href} className={cn("block px-3 py-2 rounded-lg text-sm transition-all duration-200 relative", active ? "text-uf-green font-semibold bg-white/60 shadow-sm" : "text-slate-500 hover:bg-white/40 hover:text-uf-green")}>
+                        {active && <span className="absolute left-[-17px] top-1/2 -translate-y-1/2 w-1 h-4 bg-uf-green rounded-full" />}
                         {child.label}
                       </Link>
                     );
@@ -102,16 +118,19 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="p-4 border-t border-uf-border">
-        <div className="flex items-center justify-between px-2">
+      <div className="p-4 border-t border-white/30 bg-white/20">
+        <div className="flex items-center justify-between px-2 bg-white/50 backdrop-blur-md p-2 rounded-xl shadow-sm ring-1 ring-black/5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-uf-green rounded-full flex items-center justify-center text-white font-medium shrink-0">U</div>
+            <div className="w-8 h-8 bg-gradient-to-tr from-uf-green to-teal-500 rounded-full flex items-center justify-center text-white font-medium shrink-0 shadow-inner text-sm">
+              {session?.user?.name?.charAt(0) || "U"}
+            </div>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-uf-ink">{session?.user?.name || "User Profile"}</span>
+              <span className="text-sm font-semibold text-slate-800 line-clamp-1">{session?.user?.name || "User Profile"}</span>
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">{role}</span>
             </div>
           </div>
-          <button onClick={handleLogout} className="text-uf-muted hover:text-red-500 transition-colors" title="Sign out">
-            <LogOut size={18} />
+          <button onClick={handleLogout} className="text-slate-400 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-lg" title="Sign out">
+            <LogOut size={16} />
           </button>
         </div>
       </div>

@@ -27,7 +27,9 @@ export default withAuth(
       }
     }
 
-    // If the user is a CONTACT role, restrict access to only portal routes
+    const isApi = path.startsWith("/api");
+
+    // RBAC: CONTACT
     if (role === "CONTACT") {
       if (
         !path.startsWith("/portal") && 
@@ -35,11 +37,20 @@ export default withAuth(
         !path.startsWith("/api/auth") &&
         path !== "/"
       ) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        if (isApi) return NextResponse.json({ error: "Forbidden - Portal Access Only" }, { status: 403 });
+        return NextResponse.redirect(new URL("/portal", req.url));
       }
     }
 
-    // If the user is ACCOUNTANT or ADMIN, they probably shouldn't see portal (optional, but let's allow it or just ignore)
+    // RBAC: ACCOUNTANT
+    if (role === "ACCOUNTANT") {
+      if (path.startsWith("/users") || path.startsWith("/api/users")) {
+        if (isApi) return NextResponse.json({ error: "Forbidden - Admin Access Only" }, { status: 403 });
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
+
+    // RBAC: ADMIN has access to all routes
     return NextResponse.next();
   },
   {

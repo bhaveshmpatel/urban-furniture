@@ -406,7 +406,7 @@ export async function computeBudgetReport(
  * Computes a high-level dashboard summary covering document counts by
  * status for all major document types and a budget overview.
  */
-export async function computeDashboard(): Promise<DashboardResult> {
+export async function computeDashboard(): Promise<DashboardResult & { monthlySales?: any[] }> {
   const [
     salesOrderRows,
     purchaseOrderRows,
@@ -414,6 +414,7 @@ export async function computeDashboard(): Promise<DashboardResult> {
     vendorBillRows,
     budgetAggregate,
     budgetActualRows,
+    allInvoices,
   ] = await Promise.all([
     // Status counts
     prisma.salesOrder.groupBy({
@@ -441,24 +442,45 @@ export async function computeDashboard(): Promise<DashboardResult> {
       where: { analyticAccountId: { not: null } },
       _sum: { debit: true, credit: true },
     }),
+    // Invoices for monthly sales
+    prisma.customerInvoice.findMany({
+      where: { status: { in: ['CONFIRMED', 'PARTIALLY_PAID', 'PAID'] } },
+      select: { invoiceDate: true, totalAmount: true }
+    })
   ]);
 
   const totalPlanned = new Decimal(
     (budgetAggregate._sum.committedAmount ?? 0).toString(),
   );
-  // Gross actual activity (debit + credit side, halved avoids double-counting)
   const totalActualDebit  = new Decimal(
     (budgetActualRows._sum.debit  ?? 0).toString(),
   );
   const totalActualCredit = new Decimal(
     (budgetActualRows._sum.credit ?? 0).toString(),
   );
-  // Use debit as the canonical actual spend proxy (expense-centric)
   const totalActual = totalActualDebit.minus(totalActualCredit).abs();
 
   const variancePercent = totalPlanned.isZero()
     ? new Decimal(0)
     : totalPlanned.minus(totalActual).div(totalPlanned).times(100);
+
+  // Group invoices by YYYY-MM
+  const salesByMonth = allInvoices.reduce((acc: any, inv) => {
+    const d = new Date(inv.invoiceDate);
+    const month = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0');
+    if (!acc[month]) acc[month] = 0;
+    acc[month] += Number(inv.totalAmount);
+    return acc;
+  }, {});
+
+  const monthlySales = Object.keys(salesByMonth).sort().map(month => {
+    const [y, m] = month.split('-');
+    const monthName = new Date(Number(y), Number(m)-1).toLocaleString('default', { month: 'short' });
+    return {
+      name: monthName + ' ' + y,
+      sales: salesByMonth[month],
+    };
+  });
 
   return {
     salesOrders:      fillStatusCounts(salesOrderRows),
@@ -470,5 +492,6 @@ export async function computeDashboard(): Promise<DashboardResult> {
       totalActual:     totalActual.toFixed(2),
       variancePercent: variancePercent.toFixed(2),
     },
+    monthlySales,
   };
 }

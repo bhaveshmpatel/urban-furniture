@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Printer } from "lucide-react";
+import { PrintDocument, PrintHeader, PrintMeta, PrintLinesTable, PrintFooter } from "@/components/print/PrintDocument";
 
 export default function SalesOrdersPage() {
   const [view, setView] = useState<ViewType>("list");
@@ -68,12 +69,12 @@ export default function SalesOrdersPage() {
   };
 
   const fetchDependencies = async () => {
-    const resV = await fetch("/api/contacts");
+    const resV = await fetch("/api/contacts?limit=1000");
     const contactsData = await resV.json();
     setCustomers(contactsData.filter((v: any) => v.type === "CUSTOMER" || v.type === "BOTH"));
-    const resP = await fetch("/api/products");
+    const resP = await fetch("/api/products?limit=1000");
     setProducts(await resP.json());
-    const resA = await fetch("/api/analytic-accounts");
+    const resA = await fetch("/api/analytic-accounts?limit=1000");
     setAnalytics((await resA.json()).filter((a: any) => a.type === "INCOME"));
   };
 
@@ -218,7 +219,7 @@ function SalesOrderForm({ order, customers, products, analytics, onSave }: any) 
     customerId: "", orderDate: new Date().toISOString().split('T')[0], lines: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [showPrint, setShowPrint] = useState(false);
   const isNew = !order;
   const status = order?.status || "DRAFT";
 
@@ -295,9 +296,49 @@ function SalesOrderForm({ order, customers, products, analytics, onSave }: any) 
         <div className="space-x-2">
           {status === "DRAFT" && !isNew && <Button variant="outline" onClick={() => handleAction("confirm")}>Confirm SO</Button>}
           {status === "CONFIRMED" && !order.invoice && <Button variant="outline" onClick={() => handleAction("create-invoice")}>Create Invoice</Button>}
+          {!isNew && (
+            <Button variant="outline" size="sm" onClick={() => setShowPrint(true)}>
+              <Printer className="h-4 w-4 mr-1" /> Print
+            </Button>
+          )}
           <Badge variant="outline" className="ml-4 text-sm px-3 py-1 bg-gray-50">{status}</Badge>
         </div>
       </div>
+
+
+      {/* ── Print overlay ── */}
+      {showPrint && order && (() => {
+        const party = customers.find((c: any) => c.id === order.customerId);
+        const linesTotal = (order.lines || []).reduce((s: number, l: any) => s + Number(l.quantity) * Number(l.unitPrice), 0);
+        const tax = Number(order.taxAmount || 0);
+        return (
+          <PrintDocument onClose={() => setShowPrint(false)}>
+            <div className="p-12 max-w-[210mm] mx-auto">
+              <PrintHeader
+                title="Sales Order"
+                docNumber={`SO/${order.id.slice(-8).toUpperCase()}`}
+                status={status}
+              />
+              <PrintMeta rows={[
+                { label: "Party", value: party?.name || order.customerId },
+                { label: "Date", value: order.invoiceDate ? new Date(order.invoiceDate).toLocaleDateString("en-IN") : order.orderDate ? new Date(order.orderDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Due Date", value: order.dueDate ? new Date(order.dueDate).toLocaleDateString("en-IN") : "—" },
+                { label: "Status", value: status },
+              ]} />
+              <PrintLinesTable
+                lines={(order.lines || []).map((l: any) => {
+                  const p = products.find((x: any) => x.id === l.productId);
+                  return { description: p?.name || l.productId, qty: Number(l.quantity), price: Number(l.unitPrice), subtotal: Number(l.quantity) * Number(l.unitPrice) };
+                })}
+                subtotal={linesTotal}
+                tax={tax}
+                total={linesTotal + tax}
+              />
+              <PrintFooter note="Thank you for your order!" />
+            </div>
+          </PrintDocument>
+        );
+      })()}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-2 gap-6">

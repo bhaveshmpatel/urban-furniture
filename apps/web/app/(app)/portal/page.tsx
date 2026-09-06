@@ -225,7 +225,7 @@ export default function PortalPage() {
 function PaymentForm({ doc, onComplete }: any) {
   const amountDue = Number(doc.totalAmount) - Number(doc.amountPaid || 0);
   const [amount, setAmount] = useState(amountDue.toString());
-  const [method, setMethod] = useState("BANK_TRANSFER");
+  const [method, setMethod] = useState("BANK");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -266,9 +266,8 @@ function PaymentForm({ doc, onComplete }: any) {
         <Select value={method} onValueChange={setMethod}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+            <SelectItem value="BANK">Bank Transfer</SelectItem>
             <SelectItem value="CASH">Cash</SelectItem>
-            <SelectItem value="CREDIT_CARD">Credit Card</SelectItem>
           </SelectContent>
         </Select>
       </div>

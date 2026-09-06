@@ -2,15 +2,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-uf-bg: #F6F7F5;
-  --color-uf-surface: #FFFFFF;
-  --color-uf-ink: #14171A;
-  --color-uf-muted: #5B6560;
-  --color-uf-green: #1F5C4E;
-  --color-uf-green-light: #E8F0EE;
-  --color-uf-border: #DFE3E0;
-  --color-uf-red: #B3261E;
-  --color-uf-amber: #B7791F;
+  --color-uf-bg: #F0F4F8;
+  --color-uf-surface: rgba(255, 255, 255, 0.75);
+  --color-uf-ink: #0F172A;
+  --color-uf-muted: #64748B;
+  --color-uf-green: #0F766E;
+  --color-uf-green-light: rgba(204, 251, 241, 0.6);
+  --color-uf-border: rgba(226, 232, 240, 0.6);
+  --color-uf-red: #E11D48;
+  --color-uf-amber: #D97706;
 
   --color-border: hsl(150 7% 87%);
   --color-input: hsl(150 7% 87%);

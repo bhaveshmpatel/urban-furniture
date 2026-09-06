@@ -7,6 +7,16 @@ import {
   DollarSign, Layers, CreditCard, PieChart
 } from "lucide-react";
 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+
 const QUICK_ACCESS = [
   {
     label: "Sales",
@@ -68,8 +78,8 @@ export default function DashboardPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const soAll = data ? Object.values(data.salesOrders as Record<string, number>).reduce((a: any, b: any) => a + b, 0) : 0;
-  const poAll = data ? Object.values(data.purchaseOrders as Record<string, number>).reduce((a: any, b: any) => a + b, 0) : 0;
+  const soAll = data?.salesOrders ? Object.values(data.salesOrders as Record<string, number>).reduce((a: any, b: any) => a + b, 0) : 0;
+  const poAll = data?.purchaseOrders ? Object.values(data.purchaseOrders as Record<string, number>).reduce((a: any, b: any) => a + b, 0) : 0;
   const budgetPlanned = data ? Number(data.budgetSummary?.totalPlanned || 0) : 0;
   const budgetActual = data ? Number(data.budgetSummary?.totalActual || 0) : 0;
 
@@ -163,6 +173,41 @@ export default function DashboardPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Monthly Sales Chart */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-bold text-gray-800">Monthly Sales (Revenue)</h2>
+        </div>
+        {loading ? (
+          <div className="h-64 w-full bg-gray-50 animate-pulse rounded-lg flex items-center justify-center text-gray-400">Loading chart...</div>
+        ) : data?.monthlySales?.length > 0 ? (
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.monthlySales} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value}`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <Tooltip 
+                  formatter={(value) => [`₹${Number(value).toLocaleString()}`, "Sales"]}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                />
+                <Area type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-64 w-full flex items-center justify-center text-gray-400 border border-dashed border-gray-200 rounded-lg">
+            No sales data available for the last 6 months
+          </div>
+        )}
       </div>
 
       {/* Quick Access Grid */}
